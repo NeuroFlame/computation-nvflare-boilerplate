@@ -3,6 +3,8 @@
 ## View on Youtube:
 [![Hello World](https://img.youtube.com/vi/_wGZxmQclFA/0.jpg)](https://www.youtube.com/watch?v=_wGZxmQclFA)
 
+> **Note:** Instructions below have changed slightly since the video. The job folder is now prepared with `makeJob.py` and the simulator is run on `./job`.
+
 # Build the dev image
 ```
 docker build -t nvflare-dev -f Dockerfile-dev .
@@ -17,10 +19,10 @@ docker build -t nvflare-dev -f Dockerfile-dev .
 ```
 docker run --rm -it ^
     --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ^
-    --name flare ^
+    --name nvflare-dev ^
     -v %cd%:/workspace ^
     -w //workspace ^
-    nvflare-pt:latest
+    nvflare-dev:latest
 ```
 
 
