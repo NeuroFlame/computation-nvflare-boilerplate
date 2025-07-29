@@ -17,10 +17,10 @@ docker build -t nvflare-dev -f Dockerfile-dev .
 ```
 docker run --rm -it ^
     --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ^
-    --name flare ^
+    --name nvflare-dev ^
     -v %cd%:/workspace ^
     -w //workspace ^
-    nvflare-pt:latest
+    nvflare-dev:latest
 ```
 
 
