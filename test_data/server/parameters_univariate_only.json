@@ -1,0 +1,37 @@
+{
+  "ica_method": "spatially constrained",
+  "num_components": 20,
+  "scica_template": "/workspace/app/local_data/NeuroMark.nii",
+  "mask": "/workspace/app/local_data/mask.nii",
+  "TR": 2,
+  "features": ["fnc correlations", "timecourses spectra"],
+  "common_timepoints": false,
+  "numOfPCs": [5, 5, 5],
+  "univariate_test_list": [
+    {
+      "regression": {
+        "gender": ["age"],
+        "age": ["gender"]
+      }
+    }
+  ],
+  "t_threshold": 1.0,
+  "freq_limits": [0.1, 0.15],
+  "p_threshold": 1.0,
+  "display_p_threshold": 1.0,
+  "comp_network_names": {
+    "SC":  [1, 2, 3, 4, 5],
+    "AUD": [6, 7],
+    "SM":  [8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "VIS": [17, 18, 19, 20, 21, 22, 23, 24, 25],
+    "CC":  [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42],
+    "DMN": [43, 44, 45, 46, 47, 48, 49],
+    "CR":  [50, 51, 52, 53]
+  },
+  "image_values": "positive",
+  "threshdesc": "none",
+  "skip_gica": true,
+  "gica_input_dir": "coinstac-gica",
+  "run_mancova": false,
+  "run_univariate_tests": true
+}
