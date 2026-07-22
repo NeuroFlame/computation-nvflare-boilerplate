@@ -418,6 +418,27 @@ def build_outputs(result, output_dir):
 This is the escape hatch for formats whose writer needs computation-specific
 arguments. Large-file transfer between sites remains future artifact work.
 
+## Terminal Failures
+
+Computation authors should raise ordinary Python exceptions for terminal
+errors. The framework treats all of the following as run failures:
+
+- exceptions from input, local, remote, convergence, or output functions
+- serialization and standard output writer failures
+- non-OK NVFlare site results
+- task errors, aborts, client death, and timeouts
+
+The framework records the traceback in the computation log and in an internal
+`.neuroflame_error.json` marker under the runtime output directory. The marker
+exists because NVFlare can log a fatal workflow error while still returning a
+successful simulator process status.
+
+Local simulation and production entrypoints inspect that marker after NVFlare
+finishes. On failure they raise the recorded error, exit nonzero, and retain the
+message and traceback in stderr/container logs. Production entrypoints perform
+federation shutdown before the exception reaches the process boundary, allowing
+the platform to clean up all containers.
+
 ## Typical Author Flow
 
 For a stepped computation, the author mental model should be:

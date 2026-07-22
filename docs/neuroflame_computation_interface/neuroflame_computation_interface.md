@@ -30,6 +30,11 @@ directly.
   - `entry_edge.py` – Launches the edge federated client.
   - `entry_provision.py` – Executes the provisioning step before a federated run starts.
 
+Central and edge runtime entrypoints remain alive until NVFlare shuts down. A
+terminal computation failure is preserved through shutdown and then raised at
+the process boundary, producing a nonzero container exit and an error traceback
+for the calling platform.
+
 ## Provisioning Process
 
 Provisioning generates secure startup packages that allow sites to join a federated network.

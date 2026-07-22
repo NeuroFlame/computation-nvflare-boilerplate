@@ -1,7 +1,10 @@
 import argparse
+import os
 import sys
 
 from nvflare.private.fed.app.simulator.simulator_runner import SimulatorRunner
+
+from framework.errors import raise_for_terminal_errors
 
 
 def define_simulator_parser(simulator_parser):
@@ -24,7 +27,14 @@ def run_simulator(simulator_args):
         gpu=simulator_args.gpu,
         max_clients=simulator_args.max_clients,
     )
-    return simulator.run()
+    status = simulator.run()
+    result_root = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "test_output",
+        "simulate_job",
+    )
+    raise_for_terminal_errors(result_root)
+    return status
 
 
 if __name__ == "__main__":

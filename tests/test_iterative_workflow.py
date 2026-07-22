@@ -334,6 +334,7 @@ class IterativeRuntimeTests(unittest.TestCase):
             aggregator=StubAggregator(),
             _broadcast_task=broadcast_task,
             _accept_site_result=lambda *_args: True,
+            _validate_site_result=lambda *_args: True,
         )
         context = FakeContext()
 
@@ -374,6 +375,7 @@ class IterativeRuntimeTests(unittest.TestCase):
             aggregator=StubAggregator(),
             _broadcast_task=broadcast_task,
             _accept_site_result=lambda *_args: True,
+            _validate_site_result=lambda *_args: True,
         )
         context = FakeContext()
 
