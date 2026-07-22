@@ -1,11 +1,28 @@
 # Neuroflame Computation Interface Document
 
-These details explain how Neuroflame manages container initialization, provisioning, and file mounting. Computation authors do not need to interact with these components, but understanding them can provide helpful context.
+These details explain how Neuroflame manages container initialization,
+provisioning, and file mounting. Computation authors do not normally need to
+interact with these components, but the details can help when debugging runtime
+behavior.
+
+## What Authors Should Know
+
+At the author level, the important contract is:
+
+- local input data appears under `/workspace/data`
+- outputs should be written under `/workspace/output`
+- run configuration appears under `/workspace/runKit`, including
+  `parameters.json` on every runtime node
+
+The framework and runtime layers in the boilerplate already handle those paths.
+Computation math code should usually not work with the container setup
+directly.
 
 ## The System Folder
 
 - **Purpose:**  
-  The `/system` folder encapsulates the details of container management and file mounting conventions.
+  The `/system` folder encapsulates container management and file mounting
+  conventions.
 
 - **Contents:**  
   It contains three entry point scripts that run when a container is launched:
@@ -21,7 +38,9 @@ Provisioning generates secure startup packages that allow sites to join a federa
 
 - **StartupKits and RunKits:**  
   - **StartupKits:** Created by NVFLARE commands during the provisioning step.
-  - **RunKits:** NeuroFlame wraps these startupKits into runKits. For the central node, runKits additionally include `parameters.json` for loading into NVFLARE’s controller context.
+  - **RunKits:** NeuroFlame wraps these startupKits into runKits. The
+    provisioning code adds the job, server and admin material to the central
+    runKit and writes `parameters.json` there.
   
 - **Process Flow:**  
   1. **Container Launch:**  
@@ -41,16 +60,23 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
 
 ```json
 {
-    "user_ids": ["list of user IDs"],
-    "computation_parameters": "string containing computation parameters as a stringified json object",
+    "users": [
+        {"id": "unique site ID", "name": "display site name"}
+    ],
+    "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
     "admin_port": 5678,
     "host_identifier": "IP or hostname"
 }
 ```
 
-- **user_ids:** Unique IDs for each active site.
-- **computation_parameters:** A JSON object (as a string) defined by the consortium leader.
+- **users:** A non-empty list of active sites. Each `id` and `name` must be a
+  non-empty string, and both must be unique. `id` is the stable provisioning
+  identity; `name` is the display name exposed through the generated
+  `site_id_name_map` parameter.
+- **computation_parameters:** A JSON object defined by the consortium leader.
+  A string containing an encoded JSON object is also accepted for
+  compatibility.
 - **fed_learn_port:** The port used for client connections.
 - **admin_port:** The port where the admin component is hosted.
 - **host_identifier:** The IP address or hostname for the central node.
@@ -62,7 +88,7 @@ Neuroflame maps host directories into the containers according to the following 
 | **Component**              | **Host Directory**                   | **Container Mount Point**  | **Purpose**                                          |
 |----------------------------|--------------------------------------|----------------------------|------------------------------------------------------|
 | **Provisioning Container** | Run-specific directory (e.g., `run`) | `/provisioning/`           | Temporary workspace for provisioning operations; includes `provision_input.json` written before launch. |
-| **Edge Client**            | Run-specific directory/runKit        | `/workspace/runKit`        | Contains configuration files (runKits) for the computation run. |
+| **Edge Client**            | Run-specific directory/runKit        | `/workspace/runKit`        | Contains startup configuration and must expose `parameters.json` to the framework. |
 |                            | Data directory                       | `/workspace/data`          | Read-only site-specific input data.                |
 |                            | Output directory                     | `/workspace/output`        | For computation outputs (results, logs, errors).     |
 | **Central Client**         | Run-specific directory/runKit        | `/workspace/runKit`        | Contains configuration files including `parameters.json`. |
@@ -70,8 +96,15 @@ Neuroflame maps host directories into the containers according to the following 
 > **Directory Summary:**  
 > - **`/workspace/data`:** Read-only site-specific input data for the computation.  
 > - **`/workspace/output`:** Computation outputs, including results, logs, and error reports.  
-> - **`/workspace/runKit`:** Configuration files for the computation run, including `parameters.json` (central node only).  
+> - **`/workspace/runKit`:** Configuration files for the computation run. The framework expects `parameters.json` here on both edge and central nodes.
 > - **`/provisioning/`:** Used exclusively during the provisioning process.
+
+### Parameter Distribution
+
+The repository's provisioning code writes the canonical `parameters.json` to
+the generated `centralNode` runKit. The NeuroFLAME application copies that file
+into each edge runKit during distribution, so the runtime executor can load the
+same path at every site.
 
 ---
 
@@ -79,6 +112,9 @@ Neuroflame maps host directories into the containers according to the following 
 - **Provisioning:** Wraps NVFLARE startupKits into NeuroFlame runKits and distributes them across the network.
 - **Mounting Conventions:** Refer to the table above for a clear mapping of host directories to container paths.
 
---- 
+---
 
-This document provides a concise overview of the Neuroflame computation interface. While computation authors don’t need to interact with these components, understanding them offers insight into how NVFLARE apps are deployed and managed within the Neuroflame ecosystem.
+This document provides a concise overview of the Neuroflame computation
+interface. While computation authors usually should not interact with these
+components directly, understanding them helps explain how local data, outputs,
+and parameters reach the computation at runtime.

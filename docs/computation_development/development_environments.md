@@ -1,52 +1,83 @@
-## Developing in a container
+# Development Environments
 
-- You can choose to develop inside a container or on your local host system.
-- If you choose to develop in a container you can use the following command to build a dev docker image
+You can develop computations either:
 
-```
-docker build -t nvflare-pt -f Dockerfile-dev .
-```
+- on your local machine
+- inside the dev container
 
-- You can launch the container by running `./dockerRun.sh`
-- If you're using windows, launch the container by using the following command:
+For most author work, the important thing is that local simulation is run from
+the project root with `run_local_simulation.sh`.
 
-```
-docker run --rm -it ^
-    --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ^
-    --name flare ^
-    -v %cd%:/workspace ^
-    -w //workspace ^
-    nvflare-pt:latest
+## Recommended Local Loop
 
+From the repo root:
+
+```bash
+./run_local_simulation.sh site1,site2
 ```
 
-## Developing on local machine
+This is the preferred path because it:
 
-Install the nvflare package:
+- builds the dev image if needed
+- creates the local NVFlare job
+- runs the simulator
+- prints the generated output files
 
+For source-only changes, reuse the existing image:
+
+```bash
+./run_local_simulation.sh site1,site2 --no-build
 ```
+
+`--no-build` skips `docker build`; it does not use stale computation code. The
+repository is bind-mounted at `/workspace`, so current Python, configuration,
+and documentation files are visible in the container. Run without
+`--no-build` after changing `Dockerfile-dev`, `requirements.txt`, or another
+image dependency.
+
+## Developing On The Local Machine
+
+Install NVFlare:
+
+```bash
 python3 -m pip install nvflare==2.4.0
 ```
 
-Make sure the following environment variables are set:
+Set the expected environment variables:
 
-```
+```bash
 export PYTHONPATH=$PYTHONPATH:[path to this dir + ./app/code/]
 export NVFLARE_POC_WORKSPACE=[path to this dir + ./poc-workspace/]
 ```
 
-## NVFLARE Simulator
+This is useful if you want to run scripts, import modules, or debug the Python
+code directly from your host environment.
 
-- The FL Simulator is a lightweight simulator of a running NVFLARE FL deployment, and it can allow researchers to test and debug their application without provisioning a real project.
-- https://nvflare.readthedocs.io/en/2.4.0/user_guide/nvflare_cli/fl_simulator.html
+## Developing In The Dev Container
 
-### Using NVFLARE Simulator
+Build the dev image:
 
-The simulator can run the entire project as a single thread. This can be useful for attaching a debugger.
-
-The following commands allow you to run the app using the Simulator
-
+```bash
+docker build -t nvflare-dev -f Dockerfile-dev .
 ```
+
+If you need an interactive container shell for lower-level debugging, you can
+still use the older container workflow. That is now the exception, not the
+normal author path.
+
+## Manual Debug Path
+
+If you need to debug below `run_local_simulation.sh`, the manual steps are:
+
+```bash
 python makeJob.py site1,site2
-nvflare simulator ./job
+python debugger.py ./job -w ./simulator_workspace -n 2 -c site1,site2
 ```
+
+Use this only when the wrapper script is not enough for the debugging task.
+
+## Generated Files
+
+Local runs recreate `job/`, `simulator_workspace/`, and
+`test_output/simulate_job/`. These are generated validation output and should
+remain ignored rather than being committed as computation source.

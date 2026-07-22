@@ -2,12 +2,9 @@
   "format_version": 2,
   "executors": [
     {
-      "tasks": [
-        "GET_LOCAL_AVERAGE_AND_COUNT",
-        "ACCEPT_GLOBAL_AVERAGE"
-      ],
+      "tasks": [],
       "executor": {
-        "path": "executor.executor.MyExecutor",
+        "path": "runtime.executor.RuntimeExecutor",
         "args": {}
       }
     }

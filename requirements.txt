@@ -19,6 +19,7 @@ msgpack==1.0.8
 numpy==1.24.4
 nvflare==2.4.0
 packaging==24.0
+pandas==2.0.3
 protobuf==3.20.3
 psutil==5.9.8
 pycparser==2.22

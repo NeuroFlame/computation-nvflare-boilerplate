@@ -6,6 +6,12 @@ To gain approval from the development team, the computation module must meet the
 
 - **Successful Execution**
   - The module must run successfully with three or more sites on the public platform using the provided test data.
+  - The declared workflow and generated task configuration must be exercised through `run_local_simulation.sh` before release.
+
+- **Author/Framework Boundary**
+  - Computation-specific logic must live under `app/code/computation/`.
+  - `app/code/framework/` and `app/code/runtime/` must match the released boilerplate versions used by the computation, excluding ignored bytecode caches.
+  - Computation authors must not maintain controller, executor, aggregator, transport, or task-name implementations in the computation layer.
 
 - **Computation Description Document**
   - A clear and comprehensive document must be provided, including:
@@ -24,6 +30,7 @@ To gain approval from the development team, the computation module must meet the
     - A **buildable, working image**.
     - **Test data** for validation. (3 or more sites)
     - The **computation description document**.
+    - No generated `job/`, simulator workspace, runtime output, or Python bytecode files staged as source.
 
 ---
 

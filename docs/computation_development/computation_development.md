@@ -1,116 +1,145 @@
-Below is the final version of the Basic Computation Development Document with improved flow, a concise introduction, immediate access to quick links, and clear guidance for developers:
+# Basic Computation Development Guide
 
----
+This guide is the entry point for writing computations with the current
+NeuroFLAME boilerplate.
 
-# Basic Computation Development Document
+The intended author model is:
 
-**Quick Links:**
+1. load inputs
+2. run local math
+3. aggregate remotely
+4. return outputs
 
-- **[Hello World Tutorial](./tutorial_hello_world.md)** – Recommended first step.
-- **[Development Environments](./development_environments.md)**
-- **[Core Components and Workflow](./core_components_and_workflow.md)**
-- **[NVFLARE Programming Guide](https://nvflare.readthedocs.io/en/2.4.0/programming_guide.html)**
-- **[Neuroflame Computation Interface Documentation](../neuroflame_computation_interface/neuroflame_computation_interface.md)**
+Authors should not need to work directly with NVFlare controller, executor,
+aggregator, transport, or persistence details.
 
----
+## Quick Links
 
-**Overview:**  
-This document provides essential guidance for developing an NVFLARE app that functions as a Neuroflame computation module. It covers where to place your code and configuration files, key programming concepts and control flow, and the methods you must implement. For a broader perspective on converting an algorithm into a federated computation module, see:  
-[Algorithm to Computation Module](./algorithm_to_computation_module_process.md).
+- [Hello World Tutorial](./tutorial_hello_world.md)
+- [Basic Regression Tutorial](./tutorial_basic_regression.md)
+- [Iterative Workflow Tutorial](./tutorial_iterative_workflow.md)
+- [Development Environments](./development_environments.md)
+- [Core Components and Workflow](./core_components_and_workflow.md)
+- [Neuroflame Computation Interface Documentation](../neuroflame_computation_interface/neuroflame_computation_interface.md)
+- [Algorithm to Computation Module Process](./algorithm_to_computation_module_process.md)
 
----
+## Directory Structure
 
-## 1. Directory Structure
+Focus on these directories:
 
-Focus on these directories when developing your computation:
+- `./app/code/computation/`
+  Author-owned computation code.
+- `./app/code/framework/`
+  Shared framework internals. Do not edit for normal computation authoring.
+- `./app/code/runtime/`
+  Thin NVFlare entrypoints. Do not edit for normal computation authoring.
+- `./app/config/`
+  Client/server config used to build the local simulation job.
+- `./test_data/<site>/`
+  Site-local test data.
+- `./test_data/server/parameters.json`
+  Parameters used in the local simulation.
 
-- **`./app/code/`**  
-  Contains your custom application code. This directory is included in the PYTHONPATH when running your NVFLARE app.
+## Author Editing Surface
 
-- **`./app/config/`**  
-  Stores configuration files for both server and client components.
+Computation authors should normally work in:
 
-- **`./test_data/<sites>/`**  
-  Holds test data for different sites. Ensure the folder names (e.g., `site1`, `site2`, `site3`) match those used with the NVFLARE job definition created from `makeJob.py`:  
-  python makeJob.py site1,site2,site3
-  nvflare simulator ./job
+- `spec.py`
+- `types.py`
+- `inputs.py`
+- `local_math.py`
+- `remote_math.py`
+- `results.py`
 
-- **`./test_data/server/parameters.json`**  
-  Contains the configuration parameters to be loaded into the federated learning (FL) context. This file appears in raw form on the Neuroflame desktop app, enabling the consortium leader to configure a study.
+The usual responsibilities are:
 
----
+- `spec.py`
+  Declare the workflow.
+- `types.py`
+  Define computation-specific input/result/state types.
+- `inputs.py`
+  Load local data.
+- `local_math.py`
+  Implement site-side computation.
+- `remote_math.py`
+  Implement server-side aggregation.
+- `results.py`
+  Shape the output files to be written.
 
-## 2. Programming Overview
+## Framework Model
 
-### Key Concepts
+The supported author API is:
 
-- **Unified Operation:**  
-  Your NVFLARE app is designed to run identically in both the simulator and production. The only environmental difference is in file path handling.
+- `ComputationSpec`
+- `stepped_workflow(...)`
+- `iterative_workflow(...)`
+- `local_step(...)`
+- `remote_step(...)`
+- `site_output_step(...)`
+- `with_state(payload, state)` when later steps need cached data
 
-- **File Path Abstraction:**  
-  Always use the utility functions in `./app/code/_utils/utils.py` to retrieve file paths:
-  - `get_data_directory_path()`
-  - `get_output_directory_path()`
-  - `get_parameters_file_path()`
+The example boilerplate computation does not need state, so its spec only
+declares the workflow. Framework-managed artifact transfer remains
+future-facing rather than a supported author feature.
 
-  These functions ensure your app behaves consistently across environments.
+Choose `stepped_workflow(...)` when the computation has a known sequence of
+different local/remote phases. Choose `iterative_workflow(...)` when one
+local/remote pair repeats until a user-defined predicate returns true or a
+safety cap is reached.
 
----
+Each step function receives its payload as the first argument. Later arguments
+are injected by exact name: `state`, `parameters`, `data_dir`, `output_dir`,
+`logger`, or a matching key from the computation parameters file. See
+[Core Components and Workflow](./core_components_and_workflow.md#function-signatures)
+for the complete contract.
 
-## 3. Required Methods
+`logger` is a ready-to-use standard Python logger created and closed by the
+framework.
 
-Implement the following methods in your computation classes:
+Computation data can use plain JSON values or nested dataclasses. Type hints on
+receiving step functions tell the framework which dataclasses to rebuild.
+pandas DataFrames and bounded NumPy arrays are standard field values and need no
+codec declarations. See
+[Standard Data Handling](./core_components_and_workflow.md#standard-data-handling)
+for limits and examples.
 
-### Controller
-- `start_controller(self, fl_ctx: FLContext) -> None`
-- `stop_controller(self, fl_ctx: FLContext) -> None`
-- `process_result_of_unknown_task(self, task: Task, fl_ctx: FLContext) -> None`
-- `control_flow(self, abort_signal: Signal, fl_ctx: FLContext) -> None`
+Final output functions normally return relative filenames mapped to their
+contents. JSON values, DataFrames written as CSV/TSV, and text files are handled
+by the standard writer. Specialized formats can be written directly using the
+injected `output_dir`. See
+[Output Files](./core_components_and_workflow.md#output-files).
 
-### Executor
-- `execute(self, task_name: str, shareable: Shareable, fl_ctx: FLContext, abort_signal: Signal) -> Shareable`
+## Local Testing
 
-### Aggregator
-- `accept(self, site_result: Shareable, fl_ctx: FLContext) -> bool`
-- `aggregate(self, fl_ctx: FLContext) -> Shareable`
+The normal local run path is:
 
----
+```bash
+./run_local_simulation.sh site1,site2
+```
 
-## 4. Example Control Flow
+This script will:
 
-A typical computation might proceed as follows:
+- build the local dev image if needed
+- create the NVFlare job
+- run the simulator
+- print the generated output files
 
-1. **Load Configuration:**  
-   Load `parameters.json` into the FL context (`fl_ctx`) so that configuration data is shared across all sites.
+This should be your default test loop. You do not need to manually run
+`dockerRun.sh`, `makeJob.py`, and `debugger.py` unless you are debugging
+something lower-level.
 
-2. **Create and Broadcast Task:**  
-   - Create a task (e.g., `TASK_NAME_GET_LOCAL_AVERAGE_AND_COUNT`).
-   - Attach a callback to process site-specific results (e.g., `self._accept_site_regression_result`).
-   - Broadcast the task and wait for responses using a method like `self.broadcast_and_wait`.
+Use `--no-build` for Python, documentation, and configuration-only changes. The
+repository is mounted into the existing image, so current source is still
+tested. Run without `--no-build` after changing image dependencies.
 
-3. **Aggregate Results:**  
-   Combine site results with `self.aggregator.aggregate()`.
+## What Authors Should Avoid
 
-4. **Distribute Global Result:**  
-   - Create a second task (e.g., `TASK_NAME_ACCEPT_GLOBAL_AVERAGE`).
-   - Attach the aggregated result as a shareable.
-   - Broadcast this global task to all sites.
+Authors should generally not need to write or reason about:
 
-5. **Finalize Computation:**  
-   End the computation after processing and confirming the global result.
-
----
-
-## 5. Test Data
-
-- **Site Data:**  
-  Place test data for each site under **`./test_data/<site_name>/`**. The site folder names (e.g., `site1`, `site2`) must match those used with the NVFLARE job definition used by nvflare simulator:  
-  python makeJob.py site1,site2
-  nvflare simulator ./job
-
-- **Configuration Data:**  
-  Store the test version of **`parameters.json`** in **`./test_data/server/parameters.json`**. This file simulates the configuration that the controller loads into the FL context.
-
----
-
-By following this document and using the provided utility functions, you can focus on developing your computation logic with confidence—knowing that your NVFLARE app will operate seamlessly in both simulation and production environments.
+- controller classes
+- executor classes
+- aggregator classes
+- `Shareable`
+- file transport
+- state persistence internals
+- output path wiring
