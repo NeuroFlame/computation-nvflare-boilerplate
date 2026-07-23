@@ -59,10 +59,12 @@ formats, request `output_dir`, write the file directly, and return `None`.
 
 ### Quick Start
 
-To quickly get up and running with the boilerplate application, refer to the
-- [Hello World Tutorial](docs/computation_development/tutorial_hello_world.md)
-- [Basic Regression Tutorial](docs/computation_development/tutorial_basic_regression.md)
-- [Iterative Workflow Tutorial](docs/computation_development/tutorial_iterative_workflow.md)
+To get started with the boilerplate application, use:
+
+- [Computation Tutorials](docs/computation_development/tutorials/)
+- [Hello World Tutorial](docs/computation_development/tutorials/hello_world/)
+- [Basic Regression Tutorial](docs/computation_development/tutorials/basic_regression/)
+- [Iterative Workflow Tutorial](docs/computation_development/tutorials/iterative_workflow/)
 
 For the included example computation, you can also run a local NVFlare simulation directly:
 
