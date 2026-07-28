@@ -2,6 +2,32 @@
 
 The runtime targets NVFlare 2.8.0 and Python 3.11.
 
+## Boilerplate releases
+
+The current boilerplate release is recorded in
+`.neuroflame-boilerplate-version`. The boilerplate follows its own semantic
+version independently of the NVFlare runtime version. Boilerplate `0.1.0`
+targets NVFlare 2.8.0.
+
+Check out the desired boilerplate release, then run its migration utility to
+inspect or update a computation repository:
+
+```bash
+# Report managed files that differ; makes no changes.
+python scripts/migrate_computation.py /path/to/computation --check
+
+# Make a new upgraded working-tree copy without generated files or Git metadata.
+python scripts/migrate_computation.py /path/to/computation \
+  --output /path/to/upgraded-computation
+
+# Explicitly overwrite framework-owned files in the existing repository.
+python scripts/migrate_computation.py /path/to/computation --in-place --force
+```
+
+The utility replaces `framework/`, `runtime/`, NVFlare configuration,
+provisioning and container integration. It preserves `app/code/computation/`,
+repository-specific files, and target-only packages in `requirements.txt`.
+
 This repository serves as the **central resource** for:
 
 - **Technical documentation** on the NeuroFLAME Computation Interface.
