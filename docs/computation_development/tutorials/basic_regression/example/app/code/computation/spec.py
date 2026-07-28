@@ -1,3 +1,5 @@
+"""Declare the basic regression computation workflow."""
+
 from framework import (
     ComputationSpec,
     local_step,
@@ -10,7 +12,6 @@ from .inputs import load_regression_inputs
 from .local_math import compute_local_statistics
 from .remote_math import aggregate_global_regression
 from .results import build_outputs
-
 
 SPEC = ComputationSpec(
     workflow=stepped_workflow(

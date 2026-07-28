@@ -6,7 +6,6 @@ import unittest
 from dataclasses import dataclass
 from unittest.mock import patch
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
@@ -19,13 +18,11 @@ from framework import (
     with_state,
 )
 
-
 try:
-    from nvflare.apis.event_type import EventType
-    from nvflare.apis.shareable import Shareable
-
     from framework.aggregator import ComputationAggregator
     from framework.executor import ComputationExecutor
+    from nvflare.apis.event_type import EventType
+    from nvflare.apis.shareable import Shareable
 
     NVFLARE_AVAILABLE = True
 except ImportError:
@@ -47,7 +44,9 @@ class FakeContext:
         return default
 
 
-@unittest.skipUnless(NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment")
+@unittest.skipUnless(
+    NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
+)
 class StateLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -76,7 +75,9 @@ class StateLifecycleTests(unittest.TestCase):
 
         def write_outputs(*, state: CachedState, output_dir):
             observed_state.append(state)
-            with open(os.path.join(output_dir, "special.bin"), "w", encoding="utf-8") as output_file:
+            with open(
+                os.path.join(output_dir, "special.bin"), "w", encoding="utf-8"
+            ) as output_file:
                 output_file.write(str(state.value))
 
         executor = self._executor_for(
@@ -94,7 +95,9 @@ class StateLifecycleTests(unittest.TestCase):
 
         self.assertEqual(observed_state, [CachedState(value=7)])
         self.assertFalse(os.path.exists(self._state_path()))
-        with open(os.path.join(self.output_dir, "special.bin"), encoding="utf-8") as output_file:
+        with open(
+            os.path.join(self.output_dir, "special.bin"), encoding="utf-8"
+        ) as output_file:
             self.assertEqual(output_file.read(), "7")
 
     def test_failed_output_keeps_state_until_end_run(self):

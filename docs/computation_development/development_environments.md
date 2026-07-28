@@ -8,6 +8,21 @@ You can develop computations either:
 For most author work, the important thing is that local simulation is run from
 the project root with `run_local_simulation.sh`.
 
+## Code Quality Setup
+
+Create the lightweight development environment and validate the repository:
+
+```bash
+make setup-dev
+make check
+```
+
+Use `make format` to apply safe lint fixes and format Python code. This setup
+installs only the code-quality tooling; it does not duplicate the computation
+runtime dependencies installed in the dev container. See
+[Python Code Standards](./python_code_standards.md) for the full command and
+rule reference.
+
 ## Recommended Local Loop
 
 From the repo root:

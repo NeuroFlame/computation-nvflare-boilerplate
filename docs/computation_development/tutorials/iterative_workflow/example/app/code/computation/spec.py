@@ -1,3 +1,5 @@
+"""Declare the iterative computation workflow."""
+
 from framework import (
     ComputationSpec,
     iterative_workflow,
@@ -10,7 +12,6 @@ from .inputs import load_initial_model
 from .local_math import compute_local_update
 from .remote_math import compute_global_update, has_converged
 from .results import build_outputs
-
 
 SPEC = ComputationSpec(
     workflow=iterative_workflow(

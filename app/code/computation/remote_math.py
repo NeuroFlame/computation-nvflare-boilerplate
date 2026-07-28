@@ -1,9 +1,13 @@
+"""Aggregate site summaries for the example computation."""
+
 from typing import Dict
 
 from .types import GlobalAverageSummary, LocalAverageSummary
 
 
-def compute_global_average(local_results: Dict[str, LocalAverageSummary], decimal_places: int = 2) -> GlobalAverageSummary:
+def compute_global_average(
+    local_results: Dict[str, LocalAverageSummary], decimal_places: int = 2
+) -> GlobalAverageSummary:
     """Return the weighted global average from local site summaries."""
     if not local_results:
         return GlobalAverageSummary(global_average=0)

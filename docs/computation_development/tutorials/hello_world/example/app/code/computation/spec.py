@@ -1,3 +1,5 @@
+"""Declare the Hello World computation workflow."""
+
 from framework import (
     ComputationSpec,
     local_step,
@@ -10,7 +12,6 @@ from .inputs import load_inputs
 from .local_math import compute_local_average
 from .remote_math import compute_global_average
 from .results import build_final_outputs
-
 
 SPEC = ComputationSpec(
     workflow=stepped_workflow(

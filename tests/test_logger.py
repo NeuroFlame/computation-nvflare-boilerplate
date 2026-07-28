@@ -4,7 +4,6 @@ import sys
 import tempfile
 import unittest
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
@@ -26,7 +25,9 @@ class ComputationLoggerTests(unittest.TestCase):
             close_computation_logger(logger)
 
             self.assertEqual(logger.handlers, [])
-            with open(os.path.join(output_dir, "site1.log"), encoding="utf-8") as log_file:
+            with open(
+                os.path.join(output_dir, "site1.log"), encoding="utf-8"
+            ) as log_file:
                 self.assertEqual(log_file.read(), "visible message\n")
 
     def test_invalid_level_uses_info_default(self):

@@ -15,23 +15,31 @@ copy of the finished example is in [`example/`](./example/).
 Create `app/code/computation/types.py`:
 
 ```python
+"""Define values exchanged by the Hello World computation."""
+
 from dataclasses import dataclass
 from typing import List
 
 
 @dataclass
 class ExampleInputs:
+    """Site-local numeric inputs."""
+
     values: List[float]
 
 
 @dataclass
 class LocalAverageSummary:
+    """Average and sample count computed by one site."""
+
     average: float
     count: int
 
 
 @dataclass
 class GlobalAverageSummary:
+    """Weighted average computed from all participating sites."""
+
     global_average: float
 ```
 
@@ -43,6 +51,8 @@ NVFlare objects or serialization methods.
 Create `app/code/computation/inputs.py`:
 
 ```python
+"""Load site-local inputs for the Hello World computation."""
+
 import json
 import os
 
@@ -50,6 +60,7 @@ from .types import ExampleInputs
 
 
 def load_inputs(data_dir: str) -> ExampleInputs:
+    """Load numeric values from the site's JSON input file."""
     with open(os.path.join(data_dir, "data.json"), encoding="utf-8") as data_file:
         return ExampleInputs(values=json.load(data_file))
 ```
@@ -62,6 +73,8 @@ parameter name. On each site it points to that site's input directory.
 Create `app/code/computation/local_math.py`:
 
 ```python
+"""Compute site-local summaries for the Hello World computation."""
+
 from .types import ExampleInputs, LocalAverageSummary
 
 
@@ -69,6 +82,7 @@ def compute_local_average(
     inputs: ExampleInputs,
     decimal_places: int = 2,
 ) -> LocalAverageSummary:
+    """Compute one site's rounded average and sample count."""
     if not inputs.values:
         return LocalAverageSummary(average=0.0, count=0)
 
@@ -87,6 +101,8 @@ default.
 Create `app/code/computation/remote_math.py`:
 
 ```python
+"""Aggregate site summaries for the Hello World computation."""
+
 from typing import Dict
 
 from .types import GlobalAverageSummary, LocalAverageSummary
@@ -96,6 +112,7 @@ def compute_global_average(
     site_results: Dict[str, LocalAverageSummary],
     decimal_places: int = 2,
 ) -> GlobalAverageSummary:
+    """Compute a weighted global average from all site summaries."""
     total_count = sum(result.count for result in site_results.values())
     if total_count == 0:
         return GlobalAverageSummary(global_average=0.0)
@@ -116,10 +133,13 @@ display names, so arrival order does not affect the computation.
 Create `app/code/computation/results.py`:
 
 ```python
+"""Define final outputs for the Hello World computation."""
+
 from .types import GlobalAverageSummary
 
 
 def build_final_outputs(global_summary: GlobalAverageSummary):
+    """Return the global summary as a JSON output."""
     return {"results.json": global_summary}
 ```
 
@@ -131,6 +151,8 @@ dataclass and writes the JSON file.
 Create `app/code/computation/spec.py`:
 
 ```python
+"""Declare the Hello World computation workflow."""
+
 from framework import (
     ComputationSpec,
     local_step,

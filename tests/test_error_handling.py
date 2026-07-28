@@ -7,27 +7,26 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CODE_DIR = os.path.join(REPO_ROOT, "app", "code")
 sys.path.insert(0, CODE_DIR)
 
 from framework import ComputationSpec, local_step, remote_step, stepped_workflow
-from framework.errors import find_terminal_errors, raise_for_terminal_errors, record_terminal_error
+from framework.errors import (
+    find_terminal_errors,
+    raise_for_terminal_errors,
+    record_terminal_error,
+)
 
+NVFLARE_AVAILABLE = importlib.util.find_spec("nvflare") is not None
 
-try:
-    import nvflare
-except ImportError:
-    NVFLARE_AVAILABLE = False
-else:
+if NVFLARE_AVAILABLE:
+    from framework.controller import ComputationController
+    from framework.executor import ComputationExecutor
     from nvflare.apis.controller_spec import TaskCompletionStatus
     from nvflare.apis.fl_constant import FLContextKey, ReturnCode
     from nvflare.apis.job_def import JobMetaKey, RunStatus
     from nvflare.apis.shareable import make_reply
-
-    from framework.controller import ComputationController
-    from framework.executor import ComputationExecutor
 
     NVFLARE_AVAILABLE = True
 
@@ -49,7 +48,9 @@ class FakeContext:
 
 
 def load_module(name, relative_path):
-    spec = importlib.util.spec_from_file_location(name, os.path.join(REPO_ROOT, relative_path))
+    spec = importlib.util.spec_from_file_location(
+        name, os.path.join(REPO_ROOT, relative_path)
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -72,7 +73,9 @@ class TerminalErrorMarkerTests(unittest.TestCase):
                 raise_for_terminal_errors(output_dir)
 
 
-@unittest.skipUnless(NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment")
+@unittest.skipUnless(
+    NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
+)
 class RuntimeErrorHandlingTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -149,7 +152,9 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 None,
             )
 
-        with open(os.path.join(self.output_dir, "site1.log"), encoding="utf-8") as log_file:
+        with open(
+            os.path.join(self.output_dir, "site1.log"), encoding="utf-8"
+        ) as log_file:
             log_text = log_file.read()
         self.assertIn("Computation task 'fail_local' failed", log_text)
         self.assertIn("ValueError: local math failed", log_text)
@@ -206,7 +211,9 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
         self.assertIn("JSONDecodeError", errors[0]["traceback"])
 
 
-@unittest.skipUnless(NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment")
+@unittest.skipUnless(
+    NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
+)
 class EntrypointErrorHandlingTests(unittest.TestCase):
     def test_central_abnormal_job_shuts_down_and_raises(self):
         entry_central = load_module("test_entry_central", "system/entry_central.py")
@@ -227,7 +234,9 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         session.shutdown.assert_called_once_with("all")
 
     def test_central_completed_job_shuts_down_without_error(self):
-        entry_central = load_module("test_entry_central_success", "system/entry_central.py")
+        entry_central = load_module(
+            "test_entry_central_success", "system/entry_central.py"
+        )
         session = Mock()
         session.submit_job.return_value = "job-id"
         session.get_job_meta.return_value = {

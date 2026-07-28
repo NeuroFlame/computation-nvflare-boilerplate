@@ -5,7 +5,6 @@ import unittest
 from dataclasses import dataclass
 from types import SimpleNamespace
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
@@ -13,7 +12,6 @@ import framework
 from computation.spec import SPEC
 from framework import (
     ComputationSpec,
-    iterative_workflow,
     local_step,
     remote_step,
     site_output_step,
@@ -56,7 +54,9 @@ class PublicApiTests(unittest.TestCase):
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
         )
         self.assertEqual(parameters["codecs"].kind, inspect.Parameter.KEYWORD_ONLY)
-        self.assertEqual(parameters["max_inline_array_bytes"].kind, inspect.Parameter.KEYWORD_ONLY)
+        self.assertEqual(
+            parameters["max_inline_array_bytes"].kind, inspect.Parameter.KEYWORD_ONLY
+        )
         self.assertEqual(spec.codecs, {})
         self.assertEqual(spec.max_inline_array_bytes, DEFAULT_MAX_INLINE_ARRAY_BYTES)
         for internal_name in (
@@ -115,7 +115,9 @@ class WorkflowGrammarTests(unittest.TestCase):
         def compute(value):
             return value
 
-        with self.assertRaisesRegex(ValueError, "must be immediately followed by remote_step"):
+        with self.assertRaisesRegex(
+            ValueError, "must be immediately followed by remote_step"
+        ):
             stepped_workflow(local_step(fn=compute))
 
     def test_remote_step_cannot_stand_alone(self):
@@ -217,7 +219,9 @@ class WorkflowValueTests(unittest.TestCase):
             remote_step(fn=aggregate),
         )
 
-        result = workflow.steps[0].remote_fn({"site1": 4, "site2": 5}, {}, None, self.runtime)
+        result = workflow.steps[0].remote_fn(
+            {"site1": 4, "site2": 5}, {}, None, self.runtime
+        )
 
         self.assertEqual(result.payload, 9)
         self.assertEqual(result.remote_state, CachedState(value=9))
@@ -282,7 +286,9 @@ class WorkflowValueTests(unittest.TestCase):
         def build_outputs(output_dir):
             return {"results.json": {"output_dir": output_dir}}
 
-        with self.assertRaisesRegex(TypeError, "reserved injected parameter 'output_dir'"):
+        with self.assertRaisesRegex(
+            TypeError, "reserved injected parameter 'output_dir'"
+        ):
             stepped_workflow(site_output_step(fn=build_outputs))
 
     def test_missing_required_configuration_raises(self):
@@ -294,7 +300,9 @@ class WorkflowValueTests(unittest.TestCase):
             remote_step(fn=lambda site_results: None),
         )
 
-        with self.assertRaisesRegex(TypeError, "required_setting.*missing from computation parameters"):
+        with self.assertRaisesRegex(
+            TypeError, "required_setting.*missing from computation parameters"
+        ):
             workflow.steps[0].local_fn(None, {}, None, self.runtime)
 
     def test_missing_required_state_raises(self):
@@ -313,7 +321,9 @@ class WorkflowValueTests(unittest.TestCase):
         def compute(inputs, computation_parameters):
             return inputs
 
-        with self.assertRaisesRegex(TypeError, "computation_parameters.*use 'parameters'"):
+        with self.assertRaisesRegex(
+            TypeError, "computation_parameters.*use 'parameters'"
+        ):
             stepped_workflow(local_step(fn=compute))
 
     def test_variadic_signature_is_rejected(self):

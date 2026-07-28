@@ -8,7 +8,6 @@ from types import SimpleNamespace
 from typing import Dict
 from unittest.mock import patch
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
@@ -24,13 +23,11 @@ from framework.serialization import deserialize_value, serialize_value
 from framework.types import ITERATION_INDEX_KEY, ITERATION_STOP_KEY
 from framework.workflow import get_task_names
 
-
 try:
-    from nvflare.apis.shareable import Shareable
-
     from framework.aggregator import ComputationAggregator
     from framework.controller import ComputationController
     from framework.executor import ComputationExecutor
+    from nvflare.apis.shareable import Shareable
 
     NVFLARE_AVAILABLE = True
 except ImportError:
@@ -217,7 +214,9 @@ class FakeContext:
         self.props[key] = value
 
 
-@unittest.skipUnless(NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment")
+@unittest.skipUnless(
+    NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
+)
 class IterativeRuntimeTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -285,7 +284,9 @@ class IterativeRuntimeTests(unittest.TestCase):
             [(Model(value=10), LocalCache(offset=2))],
         )
         self.assertFalse(os.path.exists(self._state_path()))
-        with open(os.path.join(self.output_dir, "result.json"), encoding="utf-8") as output_file:
+        with open(
+            os.path.join(self.output_dir, "result.json"), encoding="utf-8"
+        ) as output_file:
             self.assertEqual(json.load(output_file), {"value": 10, "offset": 2})
 
     def test_aggregator_deserializes_sites_updates_state_and_signals_stop(self):

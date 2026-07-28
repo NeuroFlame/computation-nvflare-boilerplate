@@ -5,7 +5,6 @@ import sys
 import tempfile
 import unittest
 
-
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CODE_DIR = os.path.join(ROOT_DIR, "app", "code")
 sys.path.insert(0, ROOT_DIR)
@@ -13,9 +12,9 @@ sys.path.insert(0, CODE_DIR)
 
 from computation.spec import SPEC
 from framework.workflow import get_task_names
+
 from makeJob import get_spec_task_names, update_tasks_in_client_config
 from system.provision.code.create_job import create_job
-
 
 SOURCE_APP_DIR = os.path.join(ROOT_DIR, "app")
 SOURCE_CLIENT_CONFIG = os.path.join(SOURCE_APP_DIR, "config", "config_fed_client.json")

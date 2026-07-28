@@ -1,9 +1,12 @@
+"""Compute site-local summaries for the example computation."""
+
 from .types import ExampleInputs, LocalAverageSummary
 
 
-def compute_local_average(inputs: ExampleInputs, decimal_places: int = 2) -> LocalAverageSummary:
-    """
-    Calculate the average and count from a list of numbers.
+def compute_local_average(
+    inputs: ExampleInputs, decimal_places: int = 2
+) -> LocalAverageSummary:
+    """Calculate the average and count from a list of numbers.
 
     :param inputs: Loaded computation inputs.
     :param decimal_places: Number of decimal places to round the average.

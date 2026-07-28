@@ -7,7 +7,6 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
@@ -19,7 +18,6 @@ from framework.serialization import (
     deserialize_value,
     serialize_value,
 )
-
 
 try:
     import numpy
@@ -54,6 +52,7 @@ class ValueWithDefaults:
 
 
 if numpy is not None:
+
     @dataclass
     class ArrayValue:
         values: numpy.ndarray
@@ -61,6 +60,7 @@ if numpy is not None:
 
 
 if pandas is not None:
+
     @dataclass
     class FrameValue:
         table: pandas.DataFrame
@@ -102,7 +102,9 @@ class DataclassSerializationTests(unittest.TestCase):
     def test_paths_and_artifacts_fail_with_transfer_guidance(self):
         with self.assertRaisesRegex(TypeError, "ArtifactRef/file transfer"):
             serialize_value(Path("image.nii"))
-        with self.assertRaisesRegex(TypeError, "ArtifactRef transport is not implemented"):
+        with self.assertRaisesRegex(
+            TypeError, "ArtifactRef transport is not implemented"
+        ):
             serialize_value(ArtifactRef(path="image.nii"))
 
 
@@ -142,9 +144,13 @@ class NumpySerializationTests(unittest.TestCase):
         source = numpy.arange(8, dtype=numpy.float64)
         payload = serialize_value(source)
 
-        with self.assertRaisesRegex(ValueError, "exceeding the inline limit.*ArtifactRef"):
+        with self.assertRaisesRegex(
+            ValueError, "exceeding the inline limit.*ArtifactRef"
+        ):
             serialize_value(source, max_inline_array_bytes=source.nbytes - 1)
-        with self.assertRaisesRegex(ValueError, "exceeding the inline limit.*ArtifactRef"):
+        with self.assertRaisesRegex(
+            ValueError, "exceeding the inline limit.*ArtifactRef"
+        ):
             deserialize_value(payload, max_inline_array_bytes=source.nbytes - 1)
 
     def test_object_array_is_rejected(self):
@@ -193,7 +199,9 @@ class DataFrameSerializationTests(unittest.TestCase):
     def test_legacy_untagged_dataframe_payload_still_decodes_when_typed(self):
         source = pandas.DataFrame({"value": [1, 2]})
 
-        restored = deserialize_value(DataFrameSplitJsonCodec.encode(source), pandas.DataFrame)
+        restored = deserialize_value(
+            DataFrameSplitJsonCodec.encode(source), pandas.DataFrame
+        )
 
         pandas.testing.assert_frame_equal(restored, source)
 

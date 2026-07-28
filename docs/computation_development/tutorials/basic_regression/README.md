@@ -16,6 +16,8 @@ in [`example/`](./example/).
 Create `app/code/computation/types.py`:
 
 ```python
+"""Define values exchanged by the regression computation."""
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -23,12 +25,16 @@ import numpy as np
 
 @dataclass
 class RegressionInputs:
+    """Site-local design matrix and response vector."""
+
     design_matrix: np.ndarray
     response: np.ndarray
 
 
 @dataclass
 class LocalRegressionStatistics:
+    """Sufficient statistics computed from one site's rows."""
+
     xtx: np.ndarray
     xty: np.ndarray
     n_rows: int
@@ -36,6 +42,8 @@ class LocalRegressionStatistics:
 
 @dataclass
 class GlobalRegressionModel:
+    """Global coefficients and contributing row count."""
+
     coefficients: np.ndarray
     n_rows: int
 ```
@@ -48,6 +56,8 @@ payload conversion methods or register a codec for bounded arrays.
 Create `app/code/computation/inputs.py`:
 
 ```python
+"""Load site-local tabular regression inputs."""
+
 import os
 
 import numpy as np
@@ -57,6 +67,7 @@ from .types import RegressionInputs
 
 
 def load_regression_inputs(data_dir: str) -> RegressionInputs:
+    """Load a CSV table and construct its regression arrays."""
     table = pd.read_csv(os.path.join(data_dir, "regression.csv"))
     design_matrix = np.column_stack(
         [
@@ -78,12 +89,15 @@ predictor `x`.
 Create `app/code/computation/local_math.py`:
 
 ```python
+"""Compute site-local regression statistics."""
+
 from .types import LocalRegressionStatistics, RegressionInputs
 
 
 def compute_local_statistics(
     inputs: RegressionInputs,
 ) -> LocalRegressionStatistics:
+    """Compute one site's sufficient statistics."""
     return LocalRegressionStatistics(
         xtx=inputs.design_matrix.T @ inputs.design_matrix,
         xty=inputs.design_matrix.T @ inputs.response,
@@ -99,6 +113,8 @@ while the original subject rows remain local.
 Create `app/code/computation/remote_math.py`:
 
 ```python
+"""Fit a global model from site regression statistics."""
+
 from typing import Dict
 
 import numpy as np
@@ -110,6 +126,7 @@ def aggregate_global_regression(
     site_results: Dict[str, LocalRegressionStatistics],
     ridge_penalty: float = 0.0,
 ) -> GlobalRegressionModel:
+    """Sum sufficient statistics and solve for global coefficients."""
     xtx = sum((result.xtx for result in site_results.values()), start=np.zeros((2, 2)))
     xty = sum((result.xty for result in site_results.values()), start=np.zeros(2))
 
@@ -135,10 +152,13 @@ squares.
 Create `app/code/computation/results.py`:
 
 ```python
+"""Define final outputs for the regression computation."""
+
 from .types import GlobalRegressionModel
 
 
 def build_outputs(global_model: GlobalRegressionModel):
+    """Return readable global coefficients as a JSON output."""
     return {
         "global_regression.json": {
             "intercept": round(float(global_model.coefficients[0]), 12),
@@ -156,6 +176,8 @@ The framework writes it under each site's output directory.
 Create `app/code/computation/spec.py`:
 
 ```python
+"""Declare the basic regression computation workflow."""
+
 from framework import (
     ComputationSpec,
     local_step,

@@ -65,6 +65,7 @@ To get started with the boilerplate application, use:
 - [Hello World Tutorial](docs/computation_development/tutorials/hello_world/)
 - [Basic Regression Tutorial](docs/computation_development/tutorials/basic_regression/)
 - [Iterative Workflow Tutorial](docs/computation_development/tutorials/iterative_workflow/)
+- [Python Code Standards](docs/computation_development/python_code_standards.md)
 
 For the included example computation, you can also run a local NVFlare simulation directly:
 

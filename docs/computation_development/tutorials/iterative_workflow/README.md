@@ -18,28 +18,38 @@ complete copy of the finished example is in [`example/`](./example/).
 Create `app/code/computation/types.py`:
 
 ```python
+"""Define payload and state values used by the iterative workflow."""
+
 from dataclasses import dataclass
 from typing import List, Optional
 
 
 @dataclass
 class Model:
+    """Global model exchanged between the server and sites."""
+
     value: float
     previous_value: Optional[float] = None
 
 
 @dataclass
 class LocalData:
+    """Observations cached persistently at one site."""
+
     observations: List[float]
 
 
 @dataclass
 class SiteUpdate:
+    """One site's estimate for the next global model."""
+
     estimate: float
 
 
 @dataclass
 class RemoteState:
+    """Previous global value cached persistently on the server."""
+
     value: float
 ```
 
@@ -51,6 +61,8 @@ class RemoteState:
 Create `app/code/computation/inputs.py`:
 
 ```python
+"""Load the initial model and persistent site data."""
+
 import json
 import os
 
@@ -60,6 +72,7 @@ from .types import LocalData, Model
 
 
 def load_initial_model(data_dir: str):
+    """Return the initial model with site observations as persistent state."""
     with open(os.path.join(data_dir, "data.json"), encoding="utf-8") as data_file:
         observations = json.load(data_file)
 
@@ -81,10 +94,13 @@ The input function runs only on the first iteration.
 Create `app/code/computation/local_math.py`:
 
 ```python
+"""Compute one site update during each iteration."""
+
 from .types import LocalData, Model, SiteUpdate
 
 
 def compute_local_update(model: Model, state: LocalData) -> SiteUpdate:
+    """Move the model halfway toward the site's local mean."""
     local_mean = sum(state.observations) / len(state.observations)
     return SiteUpdate(estimate=(model.value + local_mean) / 2)
 ```
@@ -98,6 +114,8 @@ the site's cached `LocalData`.
 Create `app/code/computation/remote_math.py`:
 
 ```python
+"""Aggregate iterative site updates and determine convergence."""
+
 from typing import Dict, Optional
 
 from framework import with_state
@@ -109,6 +127,7 @@ def compute_global_update(
     site_updates: Dict[str, SiteUpdate],
     state: Optional[RemoteState] = None,
 ):
+    """Average site estimates and retain the previous server value."""
     value = sum(update.estimate for update in site_updates.values()) / len(
         site_updates
     )
@@ -120,6 +139,7 @@ def compute_global_update(
 
 
 def has_converged(model: Model, tolerance: float = 0.01) -> bool:
+    """Return whether the global model changed within tolerance."""
     if model.previous_value is None:
         return False
     return abs(model.value - model.previous_value) <= tolerance
@@ -136,10 +156,13 @@ framework calls the function named by `stop_when`.
 Create `app/code/computation/results.py`:
 
 ```python
+"""Define final outputs for the iterative computation."""
+
 from .types import Model
 
 
 def build_outputs(model: Model):
+    """Return the final and previous model values as JSON."""
     return {
         "model.json": {
             "value": model.value,
@@ -155,6 +178,8 @@ This runs once after convergence or after the iteration cap.
 Create `app/code/computation/spec.py`:
 
 ```python
+"""Declare the iterative computation workflow."""
+
 from framework import (
     ComputationSpec,
     iterative_workflow,

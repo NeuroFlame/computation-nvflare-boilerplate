@@ -6,13 +6,11 @@ import unittest
 from dataclasses import dataclass
 from types import SimpleNamespace
 
-
 CODE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "code"))
 sys.path.insert(0, CODE_DIR)
 
 from framework.serialization import DEFAULT_MAX_INLINE_ARRAY_BYTES
 from framework.writers import write_standard_outputs
-
 
 try:
     import pandas
@@ -66,15 +64,22 @@ class StandardOutputTests(unittest.TestCase):
             encoding="utf-8",
         ) as output_file:
             self.assertEqual(json.load(output_file), {"value": 3})
-        with open(os.path.join(self.temp_dir.name, "index.html"), encoding="utf-8") as output_file:
+        with open(
+            os.path.join(self.temp_dir.name, "index.html"), encoding="utf-8"
+        ) as output_file:
             self.assertEqual(output_file.read(), "<h1>Result</h1>")
-        with open(os.path.join(self.temp_dir.name, "notes.txt"), encoding="utf-8") as output_file:
+        with open(
+            os.path.join(self.temp_dir.name, "notes.txt"), encoding="utf-8"
+        ) as output_file:
             self.assertEqual(output_file.read(), "complete")
         self.assertEqual(csv_value.calls[0][1], {})
         self.assertEqual(tsv_value.calls[0][1], {"sep": "\t"})
 
     def test_output_filename_must_stay_inside_output_directory(self):
-        for file_name in ("../outside.json", os.path.join(os.sep, "tmp", "outside.json")):
+        for file_name in (
+            "../outside.json",
+            os.path.join(os.sep, "tmp", "outside.json"),
+        ):
             with self.subTest(file_name=file_name):
                 with self.assertRaisesRegex(ValueError, "output_dir"):
                     write_standard_outputs({file_name: {}}, self.runtime)
@@ -104,7 +109,9 @@ class PandasOutputTests(unittest.TestCase):
                 max_inline_array_bytes=DEFAULT_MAX_INLINE_ARRAY_BYTES,
             )
             write_standard_outputs({"statistics.csv": dataframe}, runtime)
-            with open(os.path.join(output_dir, "statistics.csv"), encoding="utf-8") as output_file:
+            with open(
+                os.path.join(output_dir, "statistics.csv"), encoding="utf-8"
+            ) as output_file:
                 self.assertEqual(output_file.read(), "ROI,value\nregion1,1.5\n")
 
 
