@@ -55,7 +55,7 @@ image dependency.
 Install NVFlare:
 
 ```bash
-python3 -m pip install nvflare==2.4.0
+python3 -m pip install nvflare==2.8.0
 ```
 
 Set the expected environment variables:

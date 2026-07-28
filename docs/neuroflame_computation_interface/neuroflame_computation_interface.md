@@ -70,7 +70,6 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
     ],
     "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
-    "admin_port": 5678,
     "host_identifier": "IP or hostname"
 }
 ```
@@ -82,8 +81,9 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
 - **computation_parameters:** A JSON object defined by the consortium leader.
   A string containing an encoded JSON object is also accepted for
   compatibility.
-- **fed_learn_port:** The port used for client connections.
-- **admin_port:** The port where the admin component is hosted.
+- **fed_learn_port:** The single NVFlare 2.8 port used for client and
+  administration connections. The former `admin_port` input is no longer
+  accepted.
 - **host_identifier:** The IP address or hostname for the central node.
 
 ## Mounting Conventions

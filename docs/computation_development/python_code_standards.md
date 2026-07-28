@@ -72,7 +72,7 @@ Run a full computation simulation separately:
 
 The root `pyproject.toml` is the authoritative configuration. It enforces:
 
-- Python 3.8-compatible syntax
+- Python 3.11-compatible syntax
 - Ruff formatting with spaces, double quotes, and an 88-character target
 - pycodestyle error and warning checks that do not conflict with the formatter
 - undefined-name and unused-import checks

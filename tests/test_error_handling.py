@@ -27,6 +27,7 @@ if NVFLARE_AVAILABLE:
     from nvflare.apis.fl_constant import FLContextKey, ReturnCode
     from nvflare.apis.job_def import JobMetaKey, RunStatus
     from nvflare.apis.shareable import make_reply
+    from nvflare.fuel.flare_api.api_spec import TargetType
 
     NVFLARE_AVAILABLE = True
 
@@ -219,19 +220,22 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         entry_central = load_module("test_entry_central", "system/entry_central.py")
         session = Mock()
         session.submit_job.return_value = "job-id"
-        session.get_job_meta.return_value = {
+        session.wait_for_job.return_value = {
             JobMetaKey.STATUS.value: RunStatus.FINISHED_EXECUTION_EXCEPTION.value,
         }
 
-        with patch.object(entry_central, "start_server"), patch.object(
-            entry_central,
-            "new_secure_session",
-            return_value=session,
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "FINISHED:EXECUTION_EXCEPTION"):
                 entry_central.main()
 
-        session.shutdown.assert_called_once_with("all")
+        session.shutdown.assert_called_once_with(TargetType.ALL)
 
     def test_central_completed_job_shuts_down_without_error(self):
         entry_central = load_module(
@@ -239,18 +243,47 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         )
         session = Mock()
         session.submit_job.return_value = "job-id"
-        session.get_job_meta.return_value = {
+        session.wait_for_job.return_value = {
             JobMetaKey.STATUS.value: RunStatus.FINISHED_COMPLETED.value,
         }
 
-        with patch.object(entry_central, "start_server"), patch.object(
-            entry_central,
-            "new_secure_session",
-            return_value=session,
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
         ):
             entry_central.main()
 
-        session.shutdown.assert_called_once_with("all")
+        session.shutdown.assert_called_once_with(TargetType.ALL)
+
+    def test_central_shutdown_error_does_not_mask_job_error(self):
+        entry_central = load_module(
+            "test_entry_central_shutdown_error", "system/entry_central.py"
+        )
+        session = Mock()
+        session.submit_job.return_value = "job-id"
+        session.wait_for_job.return_value = {
+            JobMetaKey.STATUS.value: RunStatus.FINISHED_EXECUTION_EXCEPTION.value,
+        }
+        session.shutdown.side_effect = RuntimeError("shutdown failed")
+
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, "FINISHED:EXECUTION_EXCEPTION"
+            ) as raised:
+                entry_central.main()
+
+        self.assertIn("shutdown failed", " ".join(raised.exception.__notes__))
 
     def test_edge_tracks_foreground_nvflare_daemon(self):
         entry_edge = load_module("test_entry_edge", "system/entry_edge.py")
@@ -273,14 +306,17 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         entry_edge = load_module("test_entry_edge_marker", "system/entry_edge.py")
         completed_process = Mock()
 
-        with patch.object(
-            entry_edge.subprocess,
-            "run",
-            return_value=completed_process,
-        ), patch.object(
-            entry_edge,
-            "raise_for_terminal_errors",
-            side_effect=RuntimeError("local math failed"),
+        with (
+            patch.object(
+                entry_edge.subprocess,
+                "run",
+                return_value=completed_process,
+            ),
+            patch.object(
+                entry_edge,
+                "raise_for_terminal_errors",
+                side_effect=RuntimeError("local math failed"),
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "local math failed"):
                 entry_edge.main()
@@ -289,29 +325,34 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
 
     def test_debugger_escalates_marker_after_zero_simulator_status(self):
         debugger = load_module("test_debugger", "debugger.py")
-        simulator = Mock()
-        simulator.run.return_value = 0
-        simulator_args = SimpleNamespace(
-            job_folder="job",
-            workspace="workspace",
-            clients="site1",
-            n_clients=1,
-            threads=None,
-            gpu=None,
-            max_clients=100,
-        )
+        completed_process = Mock(returncode=0)
+        with tempfile.TemporaryDirectory() as workspace:
+            simulator_args = SimpleNamespace(
+                job_folder="job",
+                workspace=workspace,
+                clients="site1",
+                n_clients=1,
+                threads=None,
+                gpu=None,
+                log_config=None,
+                max_clients=100,
+                end_run_for_all=False,
+            )
 
-        with patch.object(
-            debugger,
-            "SimulatorRunner",
-            return_value=simulator,
-        ), patch.object(
-            debugger,
-            "raise_for_terminal_errors",
-            side_effect=RuntimeError("remote math failed"),
-        ):
-            with self.assertRaisesRegex(RuntimeError, "remote math failed"):
-                debugger.run_simulator(simulator_args)
+            with (
+                patch.object(
+                    debugger.subprocess,
+                    "run",
+                    return_value=completed_process,
+                ),
+                patch.object(
+                    debugger,
+                    "raise_for_terminal_errors",
+                    side_effect=RuntimeError("remote math failed"),
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "remote math failed"):
+                    debugger.run_simulator(simulator_args)
 
 
 if __name__ == "__main__":

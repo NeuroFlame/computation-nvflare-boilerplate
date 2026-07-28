@@ -21,7 +21,6 @@ following fields:
     ],
     "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
-    "admin_port": 5678,
     "host_identifier": "IP or hostname"
 }
 ```
@@ -33,8 +32,12 @@ following fields:
 - **computation_parameters**: A JSON object set by the consortium leader. A
   string containing an encoded JSON object is also accepted for compatibility.
 - **host_identifier**: The IP address or hostname where the central node can be reached.
-- **fed_learn_port**: The port clients will use to connect to the central node.
-- **admin_port**: The port where the admin component will be hosted.
+- **fed_learn_port**: The single NVFlare 2.8 port used by clients and the
+  administration API to connect to the central node.
+
+The retired `admin_port` field is rejected. NVFlare 2.8 consolidates the
+administration and federation listeners on `fed_learn_port` when no separate
+admin port is provisioned.
 
 ## Output
 

@@ -1,5 +1,7 @@
 ## Purpose
 
+The runtime targets NVFlare 2.8.0 and Python 3.11.
+
 This repository serves as the **central resource** for:
 
 - **Technical documentation** on the NeuroFLAME Computation Interface.
