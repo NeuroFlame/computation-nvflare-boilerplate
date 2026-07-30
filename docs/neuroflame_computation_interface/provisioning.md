@@ -32,12 +32,12 @@ following fields:
 - **computation_parameters**: A JSON object set by the consortium leader. A
   string containing an encoded JSON object is also accepted for compatibility.
 - **host_identifier**: The IP address or hostname where the central node can be reached.
-- **fed_learn_port**: The single NVFlare 2.8 port used by clients and the
+- **fed_learn_port**: The single port used by NeuroFLAME clients and the
   administration API to connect to the central node.
 
-The retired `admin_port` field is rejected. NVFlare 2.8 consolidates the
-administration and federation listeners on `fed_learn_port` when no separate
-admin port is provisioned.
+NeuroFLAME's current single-port provisioning contract rejects `admin_port`.
+NVFlare 2.8 itself still supports an optional distinct administration port; when
+`admin_port` is omitted, it defaults to `fed_learn_port`.
 
 ## Output
 

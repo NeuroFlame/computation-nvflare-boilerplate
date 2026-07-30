@@ -287,30 +287,32 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
 
     def test_edge_tracks_foreground_nvflare_daemon(self):
         entry_edge = load_module("test_entry_edge", "system/entry_edge.py")
-        completed_process = Mock()
+        child = Mock()
+        child.wait.return_value = 0
 
         with patch.object(
             entry_edge.subprocess,
-            "run",
-            return_value=completed_process,
-        ) as run:
+            "Popen",
+            return_value=child,
+        ) as popen:
             entry_edge.main()
 
-        run.assert_called_once_with(
-            ["/bin/bash", "/workspace/runKit/startup/sub_start.sh"],
-            check=False,
+        popen.assert_called_once_with(
+            ["/bin/bash", "/workspace/runKit/startup/sub_start.sh", "--once"],
+            start_new_session=True,
         )
-        completed_process.check_returncode.assert_called_once_with()
+        child.wait.assert_called_once_with()
 
     def test_edge_reports_terminal_marker_before_subprocess_status(self):
         entry_edge = load_module("test_entry_edge_marker", "system/entry_edge.py")
-        completed_process = Mock()
+        child = Mock()
+        child.wait.return_value = 0
 
         with (
             patch.object(
                 entry_edge.subprocess,
-                "run",
-                return_value=completed_process,
+                "Popen",
+                return_value=child,
             ),
             patch.object(
                 entry_edge,
@@ -321,7 +323,7 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "local math failed"):
                 entry_edge.main()
 
-        completed_process.check_returncode.assert_not_called()
+        child.wait.assert_called_once_with()
 
     def test_debugger_escalates_marker_after_zero_simulator_status(self):
         debugger = load_module("test_debugger", "debugger.py")

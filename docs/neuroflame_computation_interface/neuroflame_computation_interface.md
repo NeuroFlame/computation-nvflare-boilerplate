@@ -81,9 +81,10 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
 - **computation_parameters:** A JSON object defined by the consortium leader.
   A string containing an encoded JSON object is also accepted for
   compatibility.
-- **fed_learn_port:** The single NVFlare 2.8 port used for client and
-  administration connections. The former `admin_port` input is no longer
-  accepted.
+- **fed_learn_port:** The single port used by NeuroFLAME for client and
+  administration connections. NeuroFLAME does not currently accept
+  `admin_port`; NVFlare 2.8 still supports it as an optional distinct port and
+  defaults it to `fed_learn_port` when omitted.
 - **host_identifier:** The IP address or hostname for the central node.
 
 ## Mounting Conventions

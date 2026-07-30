@@ -4,9 +4,11 @@ NeuroFlame uses NVFlare 2.8.0 on Python 3.11. Computation authors continue to
 work only in `app/code/computation/`; the NVFlare controller, executor,
 aggregator, provisioning, and simulator integration remain framework concerns.
 
-Provisioning uses NVFlare's single-port server configuration. Supply
-`fed_learn_port`; the removed `admin_port` input is rejected. Generated
-projects contain no HA or Overseer configuration. The server and client
+Provisioning uses NeuroFLAME's single-port server contract. Supply
+`fed_learn_port`; this wrapper rejects `admin_port`, although NVFlare 2.8 still
+supports a distinct optional administration port and defaults it to
+`fed_learn_port` when omitted. Generated projects contain no HA or Overseer
+configuration. The server and client
 `local/resources.json.default` files retain NVFlare's provisioned class allow
 list and add only the reviewed NeuroFlame runtime entrypoint classes.
 

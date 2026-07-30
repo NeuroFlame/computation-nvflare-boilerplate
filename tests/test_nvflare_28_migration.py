@@ -51,8 +51,8 @@ class ProvisioningMigrationTests(unittest.TestCase):
         self.assertNotIn("overseer", json.dumps(project).lower())
         self.assertNotIn("nvflare.ha", json.dumps(project).lower())
 
-    def test_removed_admin_port_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "admin_port.*removed"):
+    def test_wrapper_admin_port_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "admin_port.*not supported"):
             validate_network_config(
                 {
                     "fed_learn_port": 8002,
