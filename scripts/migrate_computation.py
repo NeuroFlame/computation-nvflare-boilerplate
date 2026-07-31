@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 VERSION_FILE = ".neuroflame-boilerplate-version"
+COMPUTATION_API_VERSION_FILE = ".neuroflame-computation-api-version"
 MANAGED_DIRECTORIES = (
     Path("app/code/framework"),
     Path("app/code/runtime"),
@@ -17,12 +18,15 @@ MANAGED_DIRECTORIES = (
     Path("system/provision/code"),
 )
 MANAGED_FILES = (
+    Path(COMPUTATION_API_VERSION_FILE),
     Path("Dockerfile-dev"),
     Path("Dockerfile-prod"),
+    Path("dockerPush.sh"),
     Path("debugger.py"),
     Path("makeJob.py"),
     Path("pyproject.toml"),
     Path("requirements-dev.txt"),
+    Path("scripts/publish_computation_image.py"),
     Path("system/entry_central.py"),
     Path("system/entry_edge.py"),
     Path("system/entry_provision.py"),
@@ -127,6 +131,18 @@ def merge_requirements(source_text: str, target_text: str) -> str:
     return "\n".join(result).rstrip() + "\n"
 
 
+def merge_dockerignore(source_text: str, target_text: str) -> str:
+    """Add boilerplate-required ignores while retaining target-only entries."""
+    result = target_text.splitlines()
+    existing = {line.strip() for line in result if line.strip()}
+    for line in source_text.splitlines():
+        stripped = line.strip()
+        if stripped and stripped not in existing:
+            result.append(stripped)
+            existing.add(stripped)
+    return "\n".join(result).rstrip() + "\n"
+
+
 def planned_changes(source: Path, target: Path) -> list[str]:
     """List framework-owned paths that differ from this boilerplate release."""
     changes = []
@@ -145,6 +161,18 @@ def planned_changes(source: Path, target: Path) -> list[str]:
         != target_requirements
     ):
         changes.append("requirements.txt")
+    source_dockerignore = (source / ".dockerignore").read_text(encoding="utf-8")
+    target_dockerignore_path = target / ".dockerignore"
+    target_dockerignore = (
+        target_dockerignore_path.read_text(encoding="utf-8")
+        if target_dockerignore_path.is_file()
+        else ""
+    )
+    if (
+        merge_dockerignore(source_dockerignore, target_dockerignore)
+        != target_dockerignore
+    ):
+        changes.append(".dockerignore")
     if read_version(source) != read_version(target):
         changes.append(VERSION_FILE)
     return changes
@@ -192,6 +220,14 @@ def apply_boilerplate(source: Path, target: Path) -> None:
         source_requirements,
         target_requirements_path.read_text(encoding="utf-8"),
     )
+    source_dockerignore = (source / ".dockerignore").read_text(encoding="utf-8")
+    target_dockerignore_path = target / ".dockerignore"
+    target_dockerignore = (
+        target_dockerignore_path.read_text(encoding="utf-8")
+        if target_dockerignore_path.is_file()
+        else ""
+    )
+    merged_dockerignore = merge_dockerignore(source_dockerignore, target_dockerignore)
 
     for relative_path in MANAGED_DIRECTORIES:
         _replace_directory(source / relative_path, target / relative_path)
@@ -199,6 +235,7 @@ def apply_boilerplate(source: Path, target: Path) -> None:
         _replace_file(source / relative_path, target / relative_path)
 
     target_requirements_path.write_text(merged_requirements, encoding="utf-8")
+    target_dockerignore_path.write_text(merged_dockerignore, encoding="utf-8")
     (target / VERSION_FILE).write_text(
         f"{read_version(source)}\n",
         encoding="utf-8",

@@ -9,6 +9,13 @@ The current boilerplate release is recorded in
 version independently of the NVFlare runtime version. Boilerplate `0.1.0`
 targets NVFlare 2.8.0.
 
+Computation releases and the exact NeuroFLAME computation API contract are
+recorded separately in `.neuroflame-computation-version` and
+`.neuroflame-computation-api-version`. Publishing with `./dockerPush.sh` reads
+these markers, applies the required OCI metadata, and pushes the floating,
+release, and Git-revision tags. Use `./dockerPush.sh --no-push` to build and
+inspect the production image without publishing it.
+
 Check out the desired boilerplate release, then run its migration utility to
 inspect or update a computation repository:
 
