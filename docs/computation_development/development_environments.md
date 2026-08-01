@@ -73,7 +73,7 @@ code directly from your host environment.
 Build the dev image:
 
 ```bash
-docker build -t nvflare-dev -f Dockerfile-dev .
+docker build --platform linux/amd64 -t nvflare-dev -f Dockerfile-dev .
 ```
 
 If you need an interactive container shell for lower-level debugging, you can

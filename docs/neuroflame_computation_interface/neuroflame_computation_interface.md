@@ -32,8 +32,10 @@ directly.
 
 Central and edge runtime entrypoints remain alive until NVFlare shuts down. A
 terminal computation failure is preserved through shutdown and then raised at
-the process boundary, producing a nonzero container exit and an error traceback
-for the calling platform.
+the process boundary, producing a nonzero container exit. Full site exception
+details remain in that participant's private run results; only a versioned,
+message-free failure origin envelope crosses NVFlare. Central failures remain
+available in the central run results.
 
 ## Provisioning Process
 

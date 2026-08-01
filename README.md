@@ -16,6 +16,10 @@ these markers, applies the required OCI metadata, and pushes the floating,
 release, and Git-revision tags. Use `./dockerPush.sh --no-push` to build and
 inspect the production image without publishing it.
 
+For a local NeuroFLAME integration test, run `./dockerPush.sh --local`. This
+builds all three labeled tags in the local Docker image store and prints the
+floating image reference and content-addressed image ID used by the dev client.
+
 Check out the desired boilerplate release, then run its migration utility to
 inspect or update a computation repository:
 

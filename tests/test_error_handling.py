@@ -13,6 +13,10 @@ sys.path.insert(0, CODE_DIR)
 
 from framework import ComputationSpec, local_step, remote_step, stepped_workflow
 from framework.errors import (
+    ERROR_ENVELOPE_KEY,
+    ERROR_ORIGIN_CENTRAL,
+    ERROR_ORIGIN_SITE,
+    build_error_envelope,
     find_terminal_errors,
     raise_for_terminal_errors,
     record_terminal_error,
@@ -21,7 +25,7 @@ from framework.errors import (
 NVFLARE_AVAILABLE = importlib.util.find_spec("nvflare") is not None
 
 if NVFLARE_AVAILABLE:
-    from framework.controller import ComputationController
+    from framework.controller import ComputationController, RelayedSiteFailure
     from framework.executor import ComputationExecutor
     from nvflare.apis.controller_spec import TaskCompletionStatus
     from nvflare.apis.fl_constant import FLContextKey, ReturnCode
@@ -63,11 +67,19 @@ class TerminalErrorMarkerTests(unittest.TestCase):
             try:
                 raise ValueError("bad computation input")
             except ValueError as error:
-                record_terminal_error(output_dir, "input", error)
+                record_terminal_error(
+                    output_dir,
+                    "input",
+                    error,
+                    origin=ERROR_ORIGIN_CENTRAL,
+                    stage="input_validation",
+                )
 
             errors = find_terminal_errors(output_dir)
             self.assertEqual(len(errors), 1)
             self.assertEqual(errors[0]["scope"], "input")
+            self.assertEqual(errors[0]["origin"], ERROR_ORIGIN_CENTRAL)
+            self.assertEqual(errors[0]["stage"], "input_validation")
             self.assertEqual(errors[0]["message"], "bad computation input")
             self.assertIn("ValueError: bad computation input", errors[0]["traceback"])
             with self.assertRaisesRegex(RuntimeError, "bad computation input"):
@@ -113,6 +125,26 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 fl_ctx=None,
             )
 
+    def test_structured_site_failure_is_relayed_without_message_parsing(self):
+        result = make_reply(ReturnCode.EXECUTION_EXCEPTION)
+        result[ERROR_ENVELOPE_KEY] = build_error_envelope(
+            ERROR_ORIGIN_SITE,
+            "task_execution",
+            "site task compute",
+        )
+        client_task = SimpleNamespace(
+            result=result,
+            task=SimpleNamespace(name="compute"),
+            client=SimpleNamespace(name="site1"),
+        )
+
+        with self.assertRaises(RelayedSiteFailure):
+            ComputationController._validate_site_result(
+                None,
+                client_task=client_task,
+                fl_ctx=None,
+            )
+
     def test_non_ok_task_completion_is_terminal(self):
         def broadcast_and_wait(**kwargs):
             kwargs["task"].completion_status = TaskCompletionStatus.TIMEOUT
@@ -134,7 +166,7 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 abort_signal=None,
             )
 
-    def test_executor_logs_traceback_and_reraises_author_error(self):
+    def test_executor_returns_safe_envelope_and_keeps_full_error_local(self):
         def fail_local(_payload):
             raise ValueError("local math failed")
 
@@ -145,13 +177,23 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
         executor = ComputationExecutor()
         executor.SPEC = ComputationSpec(workflow)
 
-        with self.assertRaisesRegex(ValueError, "local math failed"):
-            executor.execute(
-                "fail_local",
-                make_reply(ReturnCode.OK),
-                FakeContext(client_name="site1"),
-                None,
-            )
+        result = executor.execute(
+            "fail_local",
+            make_reply(ReturnCode.OK),
+            FakeContext(client_name="site1"),
+            None,
+        )
+
+        self.assertEqual(result.get_return_code(), ReturnCode.EXECUTION_EXCEPTION)
+        self.assertEqual(
+            result[ERROR_ENVELOPE_KEY],
+            build_error_envelope(
+                ERROR_ORIGIN_SITE,
+                "task_execution",
+                "site task fail_local",
+            ),
+        )
+        self.assertNotIn("local math failed", json.dumps(result))
 
         with open(
             os.path.join(self.output_dir, "site1.log"), encoding="utf-8"
@@ -159,6 +201,9 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
             log_text = log_file.read()
         self.assertIn("Computation task 'fail_local' failed", log_text)
         self.assertIn("ValueError: local math failed", log_text)
+        errors = find_terminal_errors(self.output_dir)
+        self.assertEqual(errors[0]["message"], "local math failed")
+        self.assertEqual(errors[0]["origin"], ERROR_ORIGIN_SITE)
 
     def test_controller_startup_error_records_terminal_marker(self):
         def compute(payload):
@@ -198,14 +243,14 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
         with open(self.parameters_path, "w", encoding="utf-8") as parameters_file:
             parameters_file.write("not json")
 
-        with self.assertRaises(json.JSONDecodeError):
-            executor.execute(
-                "compute",
-                make_reply(ReturnCode.OK),
-                FakeContext(client_name="site1"),
-                None,
-            )
+        result = executor.execute(
+            "compute",
+            make_reply(ReturnCode.OK),
+            FakeContext(client_name="site1"),
+            None,
+        )
 
+        self.assertEqual(result.get_return_code(), ReturnCode.EXECUTION_EXCEPTION)
         errors = find_terminal_errors(self.output_dir)
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["scope"], "site task compute")

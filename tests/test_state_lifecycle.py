@@ -22,6 +22,7 @@ try:
     from framework.aggregator import ComputationAggregator
     from framework.executor import ComputationExecutor
     from nvflare.apis.event_type import EventType
+    from nvflare.apis.fl_constant import ReturnCode
     from nvflare.apis.shareable import Shareable
 
     NVFLARE_AVAILABLE = True
@@ -116,8 +117,8 @@ class StateLifecycleTests(unittest.TestCase):
         )
         executor.execute("initialize", Shareable(), self.context, None)
 
-        with self.assertRaisesRegex(RuntimeError, "cannot write 9"):
-            executor.execute("fail_output", Shareable(), self.context, None)
+        result = executor.execute("fail_output", Shareable(), self.context, None)
+        self.assertEqual(result.get_return_code(), ReturnCode.EXECUTION_EXCEPTION)
         self.assertTrue(os.path.exists(self._state_path()))
 
         executor.handle_event(EventType.END_RUN, self.context)

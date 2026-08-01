@@ -96,7 +96,7 @@ rm -rf "$RESULT_ROOT"
 if [[ $BUILD_IMAGE -eq 1 ]]; then
     echo
     echo "Building Docker image '$IMAGE_NAME'..."
-    docker build -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$LOCAL_WORKSPACE"
+    docker build --platform linux/amd64 -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$LOCAL_WORKSPACE"
 fi
 
 echo

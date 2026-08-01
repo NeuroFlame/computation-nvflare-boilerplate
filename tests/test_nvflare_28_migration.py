@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -17,7 +18,10 @@ sys.path.insert(0, SYSTEM_DIR)
 
 from debugger import build_simulator_command, configure_simulator_authorization
 from system.entry_provision import validate_network_config
-from system.provision.code.create_run_kits import extend_component_allow_list
+from system.provision.code.create_run_kits import (
+    create_run_kits,
+    extend_component_allow_list,
+)
 from system.provision.code.generate_project_file import generate_project_file
 from system.provision.code.provision_run import find_latest_production_directory
 
@@ -30,6 +34,46 @@ if NVFLARE_AVAILABLE:
 
 
 class ProvisioningMigrationTests(unittest.TestCase):
+    def test_computation_parameters_are_in_server_and_client_run_kits(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            startup_kits_path = os.path.join(temp_dir, "startup")
+            output_directory = os.path.join(temp_dir, "output")
+            host_identifier = "server.example.com"
+            admin_name = "admin@admin.com"
+            for participant in ("site1", host_identifier, admin_name):
+                os.makedirs(os.path.join(startup_kits_path, participant))
+            for participant in ("site1", host_identifier):
+                local_path = os.path.join(startup_kits_path, participant, "local")
+                os.makedirs(local_path)
+                with open(
+                    os.path.join(local_path, "resources.json.default"),
+                    "w",
+                    encoding="utf-8",
+                ) as resources_file:
+                    json.dump({"class_allow_list": []}, resources_file)
+
+            computation_parameters = '{"alpha": 1}'
+            with mock.patch("system.provision.code.create_run_kits.create_job"):
+                create_run_kits(
+                    path_app="unused",
+                    user_ids=["site1"],
+                    startup_kits_path=startup_kits_path,
+                    output_directory=output_directory,
+                    computation_parameters=computation_parameters,
+                    host_identifier=host_identifier,
+                    admin_name=admin_name,
+                )
+
+            for kit_name in ("site1", "centralNode"):
+                with open(
+                    os.path.join(output_directory, kit_name, "parameters.json"),
+                    encoding="utf-8",
+                ) as parameters_file:
+                    self.assertEqual(
+                        json.load(parameters_file),
+                        {"alpha": 1},
+                    )
+
     def test_project_uses_single_port_and_no_removed_builders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = os.path.join(temp_dir, "Project.yml")

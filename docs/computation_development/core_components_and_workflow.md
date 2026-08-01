@@ -428,15 +428,23 @@ errors. The framework treats all of the following as run failures:
 - non-OK NVFlare site results
 - task errors, aborts, client death, and timeouts
 
-The framework records the traceback in the computation log and in an internal
-`.neuroflame_error.json` marker under the runtime output directory. The marker
-exists because NVFlare can log a fatal workflow error while still returning a
-successful simulator process status.
+The framework records the complete exception and traceback in the computation
+log and in an internal `.neuroflame_error.json` marker under the runtime output
+directory. Site executors return NVFlare's `EXECUTION_EXCEPTION` status with a
+small, versioned error envelope containing only the failure origin, stage, and
+scope. Exception messages and tracebacks are deliberately not transported in
+the `Shareable`, so participant-local details do not cross the federation or
+the PHI boundary.
+
+The controller uses that envelope to distinguish a relayed site failure from a
+central controller or aggregation failure. NeuroFLAME can therefore direct a
+participant to its local run results without manufacturing a misleading
+central error. A central failure remains available in the central run results.
 
 Local simulation and production entrypoints inspect that marker after NVFlare
 finishes. On failure they raise the recorded error, exit nonzero, and retain the
 message and traceback in stderr/container logs. Production entrypoints perform
-federation shutdown before the exception reaches the process boundary, allowing
+federation shutdown before the failure reaches the process boundary, allowing
 the platform to clean up all containers.
 
 ## Typical Author Flow

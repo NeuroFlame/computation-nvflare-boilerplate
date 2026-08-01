@@ -20,6 +20,13 @@ inspects `.neuroflame_error.json` after the command finishes so an unhandled
 computation exception still reaches the calling process and produces a nonzero
 exit.
 
+NVFlare converts executor exceptions to return codes at the client task
+boundary. To retain failure provenance without exporting participant data, the
+wrapper returns `EXECUTION_EXCEPTION` with a versioned envelope containing only
+`origin`, `stage`, and `scope`. Full exception messages and tracebacks remain in
+the failing site's private marker and log. Controllers preserve the envelope's
+site origin; central controller and aggregation failures use central origin.
+
 See the official [NVFlare 2.8 migration guide](https://nvflare.readthedocs.io/en/2.8.0/migration_guide.html),
 [provisioning guide](https://nvflare.readthedocs.io/en/2.8.0/programming_guide/provisioning_system.html),
 and [simulator guide](https://nvflare.readthedocs.io/en/2.8.0/user_guide/nvflare_cli/fl_simulator.html).
