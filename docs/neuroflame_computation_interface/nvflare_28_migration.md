@@ -27,6 +27,12 @@ wrapper returns `EXECUTION_EXCEPTION` with a versioned envelope containing only
 the failing site's private marker and log. Controllers preserve the envelope's
 site origin; central controller and aggregation failures use central origin.
 
+Computation authors adopting this runtime should not copy these integration
+files individually. Apply the released framework with
+[Migrating a Computation](../computation_development/migrating_computations.md),
+then use [Publishing Computation Images](../computation_publishing/publishing_computation_images.md)
+to build and publish the labeled image.
+
 See the official [NVFlare 2.8 migration guide](https://nvflare.readthedocs.io/en/2.8.0/migration_guide.html),
 [provisioning guide](https://nvflare.readthedocs.io/en/2.8.0/programming_guide/provisioning_system.html),
 and [simulator guide](https://nvflare.readthedocs.io/en/2.8.0/user_guide/nvflare_cli/fl_simulator.html).

@@ -18,6 +18,11 @@ The framework and runtime layers in the boilerplate already handle those paths.
 Computation math code should usually not work with the container setup
 directly.
 
+Repository upgrades and image releases are separate author-maintenance
+workflows. See [Migrating a Computation](../computation_development/migrating_computations.md)
+and [Publishing Computation Images](../computation_publishing/publishing_computation_images.md);
+neither command is executed as part of a NeuroFLAME run.
+
 ## The System Folder
 
 - **Purpose:**  

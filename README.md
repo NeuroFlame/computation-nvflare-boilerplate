@@ -39,6 +39,14 @@ The utility replaces `framework/`, `runtime/`, NVFlare configuration,
 provisioning and container integration. It preserves `app/code/computation/`,
 repository-specific files, and target-only packages in `requirements.txt`.
 
+Author and release-maintainer procedures are documented in:
+
+- [Migrating a Computation to a Boilerplate Release](docs/computation_development/migrating_computations.md)
+- [Publishing Computation Images](docs/computation_publishing/publishing_computation_images.md)
+
+These scripts are repository maintenance tools. NeuroFLAME does not invoke
+them while starting or running a computation.
+
 This repository serves as the **central resource** for:
 
 - **Technical documentation** on the NeuroFLAME Computation Interface.
@@ -153,6 +161,8 @@ and standard output writing should stay out of computation math code.
 
 - **[Computation Interface Documentation](docs/neuroflame_computation_interface/neuroflame_computation_interface.md)**: How computations interact with NeuroFLAME.
 - **[Developer Guides](docs/computation_development/computation_development.md)**: Tips for seamless computation development.
+- **[Migration Guide](docs/computation_development/migrating_computations.md)**: Safely apply a released boilerplate to a computation repository.
+- **[Image Publishing Guide](docs/computation_publishing/publishing_computation_images.md)**: Build, validate, tag, and publish a computation image.
 - **[Publishing Requirements](docs/computation_publishing/Computation_Publishing_Requirements.md)**: Requirements and instructions for publishing.
 
 ## Computation Module Library

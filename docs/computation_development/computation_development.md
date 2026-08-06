@@ -22,6 +22,8 @@ aggregator, transport, or persistence details.
 - [Python Code Standards](./python_code_standards.md)
 - [Development Environments](./development_environments.md)
 - [Core Components and Workflow](./core_components_and_workflow.md)
+- [Migrating a Computation to a Boilerplate Release](./migrating_computations.md)
+- [Publishing Computation Images](../computation_publishing/publishing_computation_images.md)
 - [Neuroflame Computation Interface Documentation](../neuroflame_computation_interface/neuroflame_computation_interface.md)
 - [Algorithm to Computation Module Process](./algorithm_to_computation_module_process.md)
 
@@ -133,6 +135,12 @@ something lower-level.
 Use `--no-build` for Python, documentation, and configuration-only changes. The
 repository is mounted into the existing image, so current source is still
 tested. Run without `--no-build` after changing image dependencies.
+
+When adopting a new framework release, follow
+[Migrating a Computation to a Boilerplate Release](./migrating_computations.md)
+instead of copying framework files manually. When the computation is ready for
+release, use the author workflow in
+[Publishing Computation Images](../computation_publishing/publishing_computation_images.md).
 
 ## What Authors Should Avoid
 

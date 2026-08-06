@@ -96,3 +96,9 @@ Use this only when the wrapper script is not enough for the debugging task.
 Local runs recreate `job/`, `simulator_workspace/`, and
 `test_output/simulate_job/`. These are generated validation output and should
 remain ignored rather than being committed as computation source.
+
+After local validation, use `./dockerPush.sh --local` to build the labeled
+production image for a local NeuroFLAME integration test. See
+[Publishing Computation Images](../computation_publishing/publishing_computation_images.md)
+for the distinction between local, validation-only, and registry publication
+commands.

@@ -9,6 +9,7 @@ To gain approval from the development team, ensure the computation module meets 
 ## **Author/Framework Boundary**
 - [ ] Computation-specific code is contained in `app/code/computation/`.
 - [ ] `app/code/framework/` and `app/code/runtime/` match the released boilerplate versions used by this computation, excluding ignored bytecode caches.
+- [ ] The boilerplate migration utility reports no unexpected managed-file differences. See [Migrating a Computation](../computation_development/migrating_computations.md).
 - [ ] No computation task names are manually maintained in source NVFlare client configuration.
 - [ ] No legacy computation-specific `controller/`, `executor/`, `aggregator/`, or catch-all `utils/` tree is live.
 
@@ -38,3 +39,12 @@ Ensure the module is properly hosted and documented:
    - [ ] **Test data** for validation (**3 or more sites**).  
    - [ ] The **computation description document**.  
    - [ ] Generated jobs, simulator workspaces, runtime output, bytecode, and local reference bundles are excluded unless a reference artifact is intentionally versioned and documented.
+
+## **Versioned Image Publication**
+- [ ] `.neuroflame-computation-version` contains the intended semantic release.
+- [ ] `.neuroflame-computation-api-version` and `.neuroflame-boilerplate-version` match the released boilerplate.
+- [ ] `.neuroflame-image.json` contains the approved registry repository, floating tag, title, and source URL.
+- [ ] `./dockerPush.sh --no-push` builds and validates the production image.
+- [ ] `./dockerPush.sh --local` passes the local NeuroFLAME integration test when platform behavior changed.
+- [ ] The clean committed release is published with `./dockerPush.sh`, following [Publishing Computation Images](./publishing_computation_images.md).
+- [ ] The semantic tag and immutable registry digest are recorded in the release notes.

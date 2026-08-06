@@ -1,5 +1,11 @@
 # Computation Module Publishing Requirements
 
+Use these requirements with the author-facing
+[Publishing Computation Images](./publishing_computation_images.md) procedure.
+If the repository does not match the intended boilerplate release, complete
+[Migrating a Computation](../computation_development/migrating_computations.md)
+before release validation.
+
 ## Technical Requirements for Dev Team Approval
 
 To gain approval from the development team, the computation module must meet the following technical requirements:
@@ -33,6 +39,8 @@ To gain approval from the development team, the computation module must meet the
     - No generated `job/`, simulator workspace, runtime output, or Python bytecode files staged as source.
 
 - **Versioned container publication**
+  - Follow the supported commands and release checklist in
+    [Publishing Computation Images](./publishing_computation_images.md).
   - Set the computation release in `.neuroflame-computation-version`.
   - Keep `.neuroflame-computation-api-version` and
     `.neuroflame-boilerplate-version` synchronized through the boilerplate
