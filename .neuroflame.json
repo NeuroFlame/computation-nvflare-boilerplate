@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "computation": {
+    "version": "0.1.0"
+  },
+  "compatibility": {
+    "computationApiVersion": "0.1.0",
+    "boilerplateVersion": "0.1.0"
+  },
+  "image": {
+    "title": "boilerplate_average_app",
+    "repository": "dylanrmartin/computations",
+    "floatingTag": "boilerplate_average_app",
+    "tagPrefix": "boilerplate_average_app-",
+    "source": "https://github.com/NeuroFlame/computation-nvflare-boilerplate"
+  }
+}

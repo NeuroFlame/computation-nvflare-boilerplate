@@ -9,8 +9,21 @@ import sys
 import tempfile
 from pathlib import Path
 
-VERSION_FILE = ".neuroflame-boilerplate-version"
-COMPUTATION_API_VERSION_FILE = ".neuroflame-computation-api-version"
+if __package__:
+    from .neuroflame_manifest import (
+        MANIFEST_FILE,
+        load_manifest,
+        merge_compatibility,
+        write_manifest,
+    )
+else:
+    from neuroflame_manifest import (
+        MANIFEST_FILE,
+        load_manifest,
+        merge_compatibility,
+        write_manifest,
+    )
+
 MANAGED_DIRECTORIES = (
     Path("app/code/framework"),
     Path("app/code/runtime"),
@@ -18,7 +31,6 @@ MANAGED_DIRECTORIES = (
     Path("system/provision/code"),
 )
 MANAGED_FILES = (
-    Path(COMPUTATION_API_VERSION_FILE),
     Path("Dockerfile-dev"),
     Path("Dockerfile-prod"),
     Path("dockerPush.sh"),
@@ -26,6 +38,7 @@ MANAGED_FILES = (
     Path("makeJob.py"),
     Path("pyproject.toml"),
     Path("requirements-dev.txt"),
+    Path("scripts/neuroflame_manifest.py"),
     Path("scripts/publish_computation_image.py"),
     Path("system/entry_central.py"),
     Path("system/entry_edge.py"),
@@ -41,20 +54,13 @@ GENERATED_NAMES = {
     "test_output",
 }
 EXACT_REQUIREMENT = re.compile(r"^([A-Za-z0-9_.-]+)==([^\s]+)$")
-RELEASE_VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 def read_version(repository: Path) -> str:
-    """Read and validate a repository's boilerplate release marker."""
-    version_path = repository / VERSION_FILE
-    if not version_path.is_file():
+    """Read a repository's boilerplate compatibility version."""
+    if not (repository / MANIFEST_FILE).is_file():
         return "unversioned"
-    version = version_path.read_text(encoding="utf-8").strip()
-    if not version:
-        raise ValueError(f"Empty boilerplate version marker: {version_path}")
-    if not RELEASE_VERSION.fullmatch(version):
-        raise ValueError(f"Invalid boilerplate version '{version}' in {version_path}")
-    return version
+    return load_manifest(repository)["compatibility"]["boilerplateVersion"]
 
 
 def _ignore_generated(_directory: str, names: list[str]) -> set[str]:
@@ -173,8 +179,14 @@ def planned_changes(source: Path, target: Path) -> list[str]:
         != target_dockerignore
     ):
         changes.append(".dockerignore")
-    if read_version(source) != read_version(target):
-        changes.append(VERSION_FILE)
+    source_manifest = load_manifest(source)
+    try:
+        target_manifest = load_manifest(target)
+    except ValueError:
+        changes.append(MANIFEST_FILE)
+    else:
+        if merge_compatibility(source_manifest, target_manifest) != target_manifest:
+            changes.append(MANIFEST_FILE)
     return changes
 
 
@@ -214,6 +226,10 @@ def _replace_file(source: Path, target: Path) -> None:
 
 def apply_boilerplate(source: Path, target: Path) -> None:
     """Replace framework-owned content and record the applied release."""
+    merged_manifest = merge_compatibility(
+        load_manifest(source),
+        load_manifest(target),
+    )
     source_requirements = (source / "requirements.txt").read_text(encoding="utf-8")
     target_requirements_path = target / "requirements.txt"
     merged_requirements = merge_requirements(
@@ -236,16 +252,14 @@ def apply_boilerplate(source: Path, target: Path) -> None:
 
     target_requirements_path.write_text(merged_requirements, encoding="utf-8")
     target_dockerignore_path.write_text(merged_dockerignore, encoding="utf-8")
-    (target / VERSION_FILE).write_text(
-        f"{read_version(source)}\n",
-        encoding="utf-8",
-    )
+    write_manifest(target, merged_manifest)
 
 
 def create_migrated_copy(source: Path, target: Path, output: Path) -> None:
     """Copy a computation repository and upgrade the copy."""
     if output.exists():
         raise FileExistsError(f"Output path already exists: {output}")
+    load_manifest(target)
     shutil.copytree(target, output, ignore=_ignore_generated)
     apply_boilerplate(source, output)
 

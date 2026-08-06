@@ -1,4 +1,3 @@
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from scripts import publish_computation_image
+from scripts.neuroflame_manifest import write_manifest
 
 
 class ImagePublisherTests(unittest.TestCase):
@@ -21,26 +21,23 @@ class ImagePublisherTests(unittest.TestCase):
     def test_build_labels_reads_committed_contract_versions(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repository = Path(temp_dir)
-            (repository / ".neuroflame-image.json").write_text(
-                json.dumps(
-                    {
+            write_manifest(
+                repository,
+                {
+                    "manifestVersion": 1,
+                    "computation": {"version": "1.2.3"},
+                    "compatibility": {
+                        "computationApiVersion": "0.1.0",
+                        "boilerplateVersion": "0.1.0",
+                    },
+                    "image": {
                         "title": "example",
                         "repository": "example/computation",
                         "floatingTag": "latest",
                         "tagPrefix": "",
                         "source": "https://example.test/computation",
-                    }
-                ),
-                encoding="utf-8",
-            )
-            (repository / ".neuroflame-computation-version").write_text(
-                "1.2.3\n", encoding="utf-8"
-            )
-            (repository / ".neuroflame-computation-api-version").write_text(
-                "0.1.0\n", encoding="utf-8"
-            )
-            (repository / ".neuroflame-boilerplate-version").write_text(
-                "0.1.0\n", encoding="utf-8"
+                    },
+                },
             )
             (repository / "requirements.txt").write_text(
                 "nvflare==2.8.0\n", encoding="utf-8"

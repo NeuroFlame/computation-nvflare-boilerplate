@@ -41,9 +41,9 @@ Ensure the module is properly hosted and documented:
    - [ ] Generated jobs, simulator workspaces, runtime output, bytecode, and local reference bundles are excluded unless a reference artifact is intentionally versioned and documented.
 
 ## **Versioned Image Publication**
-- [ ] `.neuroflame-computation-version` contains the intended semantic release.
-- [ ] `.neuroflame-computation-api-version` and `.neuroflame-boilerplate-version` match the released boilerplate.
-- [ ] `.neuroflame-image.json` contains the approved registry repository, floating tag, title, and source URL.
+- [ ] `.neuroflame.json` contains the intended `computation.version`.
+- [ ] The manifest's `compatibility` section matches the released boilerplate.
+- [ ] The manifest's `image` section contains the approved registry repository, floating tag, title, and source URL.
 - [ ] `./dockerPush.sh --no-push` builds and validates the production image.
 - [ ] `./dockerPush.sh --local` passes the local NeuroFLAME integration test when platform behavior changed.
 - [ ] The clean committed release is published with `./dockerPush.sh`, following [Publishing Computation Images](./publishing_computation_images.md).

@@ -41,13 +41,12 @@ To gain approval from the development team, the computation module must meet the
 - **Versioned container publication**
   - Follow the supported commands and release checklist in
     [Publishing Computation Images](./publishing_computation_images.md).
-  - Set the computation release in `.neuroflame-computation-version`.
-  - Keep `.neuroflame-computation-api-version` and
-    `.neuroflame-boilerplate-version` synchronized through the boilerplate
-    migration utility.
-  - Configure the registry destination in `.neuroflame-image.json` and publish
-    with `./dockerPush.sh`. Do not replace the required OCI labels with labels
-    maintained manually in `Dockerfile-prod`.
+  - Set `computation.version` and the `image` destination in
+    `.neuroflame.json`.
+  - Keep the manifest's `compatibility` section synchronized through the
+    boilerplate migration utility.
+  - Publish with `./dockerPush.sh`. Do not replace the required OCI labels with
+    labels maintained manually in `Dockerfile-prod`.
   - Publishing produces the configured floating tag, a semantic-version tag,
     and a full Git-revision tag. NeuroFLAME resolves one immutable digest from
     these tags before a run.

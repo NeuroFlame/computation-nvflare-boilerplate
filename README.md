@@ -4,17 +4,16 @@ The runtime targets NVFlare 2.8.0 and Python 3.11.
 
 ## Boilerplate releases
 
-The current boilerplate release is recorded in
-`.neuroflame-boilerplate-version`. The boilerplate follows its own semantic
+The repository's `.neuroflame.json` manifest records the computation release,
+the exact NeuroFLAME computation API and boilerplate compatibility versions,
+and the image publishing destination. The boilerplate follows its own semantic
 version independently of the NVFlare runtime version. Boilerplate `0.1.0`
 targets NVFlare 2.8.0.
 
-Computation releases and the exact NeuroFLAME computation API contract are
-recorded separately in `.neuroflame-computation-version` and
-`.neuroflame-computation-api-version`. Publishing with `./dockerPush.sh` reads
-these markers, applies the required OCI metadata, and pushes the floating,
-release, and Git-revision tags. Use `./dockerPush.sh --no-push` to build and
-inspect the production image without publishing it.
+Publishing with `./dockerPush.sh` validates this manifest, applies the required
+OCI metadata, and pushes the floating, release, and Git-revision tags. Use
+`./dockerPush.sh --no-push` to build and inspect the production image without
+publishing it.
 
 For a local NeuroFLAME integration test, run `./dockerPush.sh --local`. This
 builds all three labeled tags in the local Docker image store and prints the
