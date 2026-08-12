@@ -9,16 +9,19 @@
     {
       "id": "aggregator",
       "path": "runtime.aggregator.RuntimeAggregator",
-      "args": {
-      }
+      "args": {}
+    },
+    {
+      "id": "artifact_transfer",
+      "path": "framework.artifact_transfer.ArtifactTransfer",
+      "args": {}
     }
   ],
   "workflows": [
     {
       "id": "controller",
       "path": "runtime.controller.RuntimeController",
-      "args": {
-      }
+      "args": {}
     }
   ]
 }

@@ -70,9 +70,8 @@ The author-facing framework API is intentionally small:
 - `remote_step(...)`
 - `site_output_step(...)`
 - `with_state(payload, state)` when a later step needs cached state
-
-Framework-managed artifact transfer remains future-facing and is not part of
-the supported author API yet.
+- `artifact(name, path, media_type=None)` for a runtime-staged file that must
+  cross the current site/central workflow edge
 
 Step functions are ordinary Python functions. Their first argument is the step
 payload; optional state, framework values, and computation settings are supplied
@@ -80,6 +79,12 @@ by exact parameter name.
 
 Requesting `logger` supplies a ready-to-use standard Python logger; computation
 authors do not configure its path, handlers, or lifecycle.
+
+Requesting `artifact_dir` supplies a private, runtime-controlled directory for
+files that will be returned through `artifact(...)`. Artifact paths outside this
+directory, symlinks, non-regular files, unsafe names, and configured size-limit
+violations are rejected before transfer. See the
+[Artifact Transfer guide](docs/computation_development/artifacts.md).
 
 Each `local_step` is followed immediately by its `remote_step`, and an optional
 `site_output_step` comes last. The framework validates this sequence and derives

@@ -27,7 +27,9 @@ class PublicApiTests(unittest.TestCase):
         self.assertEqual(
             set(framework.__all__),
             {
+                "ArtifactRef",
                 "ComputationSpec",
+                "artifact",
                 "iterative_workflow",
                 "local_step",
                 "remote_step",
@@ -47,7 +49,15 @@ class PublicApiTests(unittest.TestCase):
         parameters = inspect.signature(ComputationSpec).parameters
         self.assertEqual(
             tuple(parameters),
-            ("workflow", "codecs", "max_inline_array_bytes"),
+            (
+                "workflow",
+                "codecs",
+                "max_inline_array_bytes",
+                "max_artifact_bytes",
+                "max_artifact_total_bytes",
+                "artifact_timeout",
+                "artifact_retries",
+            ),
         )
         self.assertEqual(
             parameters["workflow"].kind,

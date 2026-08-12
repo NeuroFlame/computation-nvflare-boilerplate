@@ -272,9 +272,11 @@ SPEC = ComputationSpec(
 )
 ```
 
-Framework-managed artifact transfer is not yet part of the supported author
-API. Its internal types are future-facing and should not be used by computation
-code yet.
+Framework-managed artifact transfer is available through the computation-facing
+`artifact()` helper. Return an artifact reference from a step when a file is too
+large or inappropriate for inline serialization. The runtime validates, stages,
+streams, verifies, and materializes the file; computation code never imports an
+NVFlare transport class. See [Artifacts](artifacts.md) for the complete contract.
 
 ## Function Signatures
 
@@ -416,7 +418,9 @@ def build_outputs(result, output_dir):
 ```
 
 This is the escape hatch for formats whose writer needs computation-specific
-arguments. Large-file transfer between sites remains future artifact work.
+arguments. To send a generated file to the next participant or central step,
+write it beneath `artifact_dir` and return it with `artifact()` as documented in
+[Artifacts](artifacts.md).
 
 ## Terminal Failures
 

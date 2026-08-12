@@ -146,7 +146,8 @@ The default platform is `linux/amd64`, which is the supported NeuroFLAME
 computation target. Do not override `--platform` for a normal release. A
 different platform requires an explicit platform compatibility decision.
 
-An explicit revision can be supplied as the positional argument, but normal
+An explicit revision can be supplied as the positional argument, but it must
+resolve to the current full `HEAD`; the publisher rejects any other checkout. Normal
 author releases should omit it and publish the current `HEAD`:
 
 ```bash
