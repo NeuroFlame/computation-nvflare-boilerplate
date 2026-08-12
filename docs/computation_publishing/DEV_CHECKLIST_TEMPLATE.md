@@ -4,6 +4,13 @@ To gain approval from the development team, ensure the computation module meets 
 
 ## **Successful Execution**  
 - [ ] The module runs successfully with **three or more sites** on the public platform using the provided test data.
+- [ ] `run_local_simulation.sh` succeeds using the workflow declared in `app/code/computation/spec.py`.
+
+## **Author/Framework Boundary**
+- [ ] Computation-specific code is contained in `app/code/computation/`.
+- [ ] `app/code/framework/` and `app/code/runtime/` match the released boilerplate versions used by this computation, excluding ignored bytecode caches.
+- [ ] No computation task names are manually maintained in source NVFlare client configuration.
+- [ ] No legacy computation-specific `controller/`, `executor/`, `aggregator/`, or catch-all `utils/` tree is live.
 
 ## **Computation Description Document**  
 Provide a clear and comprehensive document covering the following:  
@@ -14,7 +21,7 @@ Provide a clear and comprehensive document covering the following:
    - [ ] Specification for **`parameters.json`**.  
 - [ ] **Output Format Description** – Clear definition of expected outputs.  
 - [ ] **Minimum Hardware & Space Requirements** – System requirements for execution.
-      Craete a log of how many subjects are in each site along with peak RAM usage.
+      Create a log of how many subjects are in each site along with peak RAM usage.
       To track RAM usage, go to docker dashboard, to the specific container and under the 'stats' tab you see RAM usage.
       This info. needs to be included in the compoutation description. Example below:  
       Number of Subjects:RAM Needed (GB)  
@@ -30,4 +37,4 @@ Ensure the module is properly hosted and documented:
    - [ ] A **buildable, working image**.  
    - [ ] **Test data** for validation (**3 or more sites**).  
    - [ ] The **computation description document**.  
-
+   - [ ] Generated jobs, simulator workspaces, runtime output, bytecode, and local reference bundles are excluded unless a reference artifact is intentionally versioned and documented.

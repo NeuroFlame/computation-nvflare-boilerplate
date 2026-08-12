@@ -65,27 +65,29 @@ Before integration with NeuroFLAME, provide two key deliverables:
        2. Aggregate the statistics.
        3. Output the final analysis result.
 
-2. **Set of Functions with Explicit Input and Output Types**
+2. **Set of Computation Functions and Boundary Types**
 
-   - **Purpose**: Provide clean, well-defined functions for both edge and central computations.
+   - **Purpose**: Provide clean functions for local math, remote math, and final output generation.
 
    - **Content**:
-     - **Edge Node Functions**:
-       - Functions that process local data and produce outputs to be shared.
-     - **Central Node Functions**:
-       - Functions that aggregate data from edge nodes and compute the final results.
+     - **Local Functions**:
+       - Functions that process site-local data and produce outputs to be shared.
+     - **Remote Functions**:
+       - Functions that aggregate site results and compute the next global result.
 
    - **Specifications**:
-     - **Explicit Types**:
-       - Clearly define input and output types (e.g., integers, floats, dictionaries).
+     - **Types Where They Help**:
+       - Use ordinary dataclasses for structured computation values.
+       - Annotate receiving payloads when the framework must reconstruct a dataclass.
+       - Plain JSON values need no custom class, and return annotations do not control serialization.
      - **Serializable Data**:
-       - Ensure inputs and outputs are in formats that can be easily transmitted (e.g., JSON-serializable).
+       - Use JSON values, dataclasses, DataFrames, or bounded NumPy arrays for inline payloads.
 
    - **Example**:
 
-     - **Edge Node Function**:
+     - **Local Function**:
        ```python
-       def compute_local_stats(data: pd.DataFrame) -> Dict[str, float]:
+       def compute_local_stats(data: pd.DataFrame) -> LocalStats:
            """
            Computes local statistics.
 
@@ -93,30 +95,56 @@ Before integration with NeuroFLAME, provide two key deliverables:
                data (pd.DataFrame): The local dataset.
 
            Returns:
-               Dict[str, float]: A dictionary containing computed statistics.
+               LocalStats: A typed object containing computed statistics.
            """
            local_mean = data['value'].mean()
            local_count = len(data)
-           return {'local_mean': local_mean, 'local_count': local_count}
+           return LocalStats(local_mean=local_mean, local_count=local_count)
        ```
 
-     - **Central Node Function**:
+     - **Remote Function**:
        ```python
-       def aggregate_global_stats(local_stats: List[Dict[str, float]]) -> float:
+       def aggregate_global_stats(local_stats: Dict[str, LocalStats]) -> float:
            """
-           Aggregates statistics from edge nodes to compute the global result.
+           Aggregates statistics from sites to compute the global result.
 
            Parameters:
-               local_stats (List[Dict[str, float]]): A list of statistics from edge nodes.
+               local_stats: Statistics keyed by site display name.
 
            Returns:
                float: The global computed statistic.
            """
-           total_sum = sum(stat['local_mean'] * stat['local_count'] for stat in local_stats)
-           total_count = sum(stat['local_count'] for stat in local_stats)
+           total_sum = sum(
+               stat.local_mean * stat.local_count
+               for stat in local_stats.values()
+           )
+           total_count = sum(stat.local_count for stat in local_stats.values())
            global_mean = total_sum / total_count
            return global_mean
        ```
+
+   - **Recommended Mapping To The Boilerplate**:
+     - `inputs.py`: local data loading
+     - `local_math.py`: local computation
+     - `remote_math.py`: remote aggregation
+     - `results.py`: final output shaping
+     - `spec.py`: workflow declaration
+
+   - **Workflow Declaration**:
+
+     ```python
+     SPEC = ComputationSpec(
+         workflow=stepped_workflow(
+             local_step(fn=compute_local_stats, input_fn=load_inputs),
+             remote_step(fn=aggregate_global_stats),
+             site_output_step(fn=build_outputs),
+         ),
+     )
+     ```
+
+     Use `iterative_workflow(...)` instead when the same local and remote
+     functions repeat until convergence. Computation authors do not write task
+     names, controllers, executors, aggregators, or payload conversion methods.
 
 ---
 
@@ -144,7 +172,7 @@ By following these steps and preparing the specified deliverables, you set a sol
 2. **Conceptual Federated Workflow**: Plan how your analysis will function in a federated environment.
 3. **Deliverables**:
    - **Workflow Description**: A clear outline of the federated computation steps.
-   - **Functions with Explicit Types**: Clean code for edge and central computations with defined inputs and outputs.
+   - **Computation Functions**: Clean local, remote, and output math with boundary types where reconstruction requires them.
 
 This structured approach helps focus your efforts, validates the fundamental elements of your computation, and facilitates collaboration with the development team. It ensures that the final integrated computation is reliable and produces meaningful results.
 

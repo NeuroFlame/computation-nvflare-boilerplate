@@ -15,10 +15,100 @@ Included in this repository:
 - A workflow for developing and testing computations.
 - A foundation for new computation projects.
 
+The author-facing framework API is intentionally small:
+
+- `ComputationSpec`
+- `stepped_workflow(...)`
+- `iterative_workflow(...)`
+- `local_step(...)`
+- `remote_step(...)`
+- `site_output_step(...)`
+- `with_state(payload, state)` when a later step needs cached state
+
+Framework-managed artifact transfer remains future-facing and is not part of
+the supported author API yet.
+
+Step functions are ordinary Python functions. Their first argument is the step
+payload; optional state, framework values, and computation settings are supplied
+by exact parameter name.
+
+Requesting `logger` supplies a ready-to-use standard Python logger; computation
+authors do not configure its path, handlers, or lifecycle.
+
+Each `local_step` is followed immediately by its `remote_step`, and an optional
+`site_output_step` comes last. The framework validates this sequence and derives
+the generated job's task identifiers from the declared functions.
+
+For convergence-based computations, `iterative_workflow(...)` repeats one
+local/remote pair until `stop_when` returns true or `max_iterations` is reached,
+then runs the final `site_output_step` once.
+
+Function names become task identifiers only for local and output steps. Remote
+functions and convergence predicates run on the server and can use any
+descriptive Python name. The detailed callable, typing, state, and iteration
+contracts are in the
+[Core Components and Workflow guide](docs/computation_development/core_components_and_workflow.md).
+
+Plain JSON values, nested dataclasses, pandas DataFrames, and bounded NumPy
+arrays are serialized by the framework. Computation types do not need payload
+methods, codec imports, or dataclass field metadata.
+
+Output functions return a mapping from relative filenames to values, such as
+`{"results.json": result, "statistics.csv": dataframe}`. For specialized file
+formats, request `output_dir`, write the file directly, and return `None`.
+
 ### Quick Start
 
-To quickly get up and running with the boilerplate application, refer to the
-- [Hello World Tutorial](docs/computation_development/tutorial_hello_world.md)
+To get started with the boilerplate application, use:
+
+- [Computation Tutorials](docs/computation_development/tutorials/)
+- [Hello World Tutorial](docs/computation_development/tutorials/hello_world/)
+- [Basic Regression Tutorial](docs/computation_development/tutorials/basic_regression/)
+- [Iterative Workflow Tutorial](docs/computation_development/tutorials/iterative_workflow/)
+- [Python Code Standards](docs/computation_development/python_code_standards.md)
+
+For the included example computation, you can also run a local NVFlare simulation directly:
+
+```bash
+./run_local_simulation.sh site1,site2
+```
+
+This script will:
+- build the local dev image
+- create the NVFlare job
+- run the simulator
+- print the generated output files under `test_output/simulate_job/<site>/`
+
+For source-only changes, `--no-build` skips the image build while still testing
+the latest repository code through the container bind mount. Rebuild after
+changing dependencies or a Dockerfile.
+
+## Author Editing Surface
+
+Computation authors should work inside `app/code/computation/`.
+
+- `spec.py`: choose the workflow and wire the named computation functions together
+- `types.py`: define computation-specific data types
+- `inputs.py`: load and interpret site-local input data
+- `local_math.py`: site-side math
+- `remote_math.py`: server-side aggregation math
+- `results.py`: shape final outputs
+
+Authors should generally not edit:
+
+- `app/code/framework/`: framework internals
+- `app/code/runtime/`: NVFlare adapter layer
+
+The expected author mental model is:
+
+1. load inputs
+2. run local math
+3. receive aggregated/global input back
+4. run more math if needed
+5. return final outputs
+
+Framework concerns such as NVFlare controllers, transport, state persistence,
+and standard output writing should stay out of computation math code.
 
 ## Documentation
 

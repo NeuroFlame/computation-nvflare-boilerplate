@@ -8,7 +8,7 @@
   "components": [
     {
       "id": "aggregator",
-      "path": "aggregator.aggregator.MyAggregator",
+      "path": "runtime.aggregator.RuntimeAggregator",
       "args": {
       }
     }
@@ -16,7 +16,7 @@
   "workflows": [
     {
       "id": "controller",
-      "path": "controller.controller.MyController",
+      "path": "runtime.controller.RuntimeController",
       "args": {
       }
     }
