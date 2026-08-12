@@ -1,5 +1,11 @@
 # Computation Module Publishing Requirements
 
+Use these requirements with the author-facing
+[Publishing Computation Images](./publishing_computation_images.md) procedure.
+If the repository does not match the intended boilerplate release, complete
+[Migrating a Computation](../computation_development/migrating_computations.md)
+before release validation.
+
 ## Technical Requirements for Dev Team Approval
 
 To gain approval from the development team, the computation module must meet the following technical requirements:
@@ -31,6 +37,19 @@ To gain approval from the development team, the computation module must meet the
     - **Test data** for validation. (3 or more sites)
     - The **computation description document**.
     - No generated `job/`, simulator workspace, runtime output, or Python bytecode files staged as source.
+
+- **Versioned container publication**
+  - Follow the supported commands and release checklist in
+    [Publishing Computation Images](./publishing_computation_images.md).
+  - Set `computation.version` and the `image` destination in
+    `.neuroflame.json`.
+  - Keep the manifest's `compatibility` section synchronized through the
+    boilerplate migration utility.
+  - Publish with `./dockerPush.sh`. Do not replace the required OCI labels with
+    labels maintained manually in `Dockerfile-prod`.
+  - Publishing produces the configured floating tag, a semantic-version tag,
+    and a full Git-revision tag. NeuroFLAME resolves one immutable digest from
+    these tags before a run.
 
 ---
 

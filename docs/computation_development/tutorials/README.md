@@ -15,3 +15,8 @@ Start with:
 
 The examples can be copied into the repository's live `app/code/computation/`
 and `test_data/` directories using the commands in each guide.
+
+After turning an example into a maintained computation repository, see
+[Migrating a Computation](../migrating_computations.md) for framework upgrades
+and [Publishing Computation Images](../../computation_publishing/publishing_computation_images.md)
+for the author release workflow.

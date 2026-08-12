@@ -179,3 +179,16 @@ This structured approach helps focus your efforts, validates the fundamental ele
 ---
 
 **Remember**: The key is to start with a solid foundation (working pooled data analysis) and then thoughtfully adapt it for the federated context, clearly documenting each step along the way.
+
+### Next Steps: Framework Updates and Publication
+
+Once the computation is implemented and validated:
+
+1. Use [Migrating a Computation to a Boilerplate Release](./migrating_computations.md)
+   when adopting a newer framework/API contract.
+2. Complete the technical and PI publishing checklists.
+3. Follow [Publishing Computation Images](../computation_publishing/publishing_computation_images.md)
+   to version, build, validate, and publish the release image.
+
+Migration and image publication are explicit author or repository-maintainer
+operations; they are not part of a NeuroFLAME computation run.

@@ -18,6 +18,11 @@ The framework and runtime layers in the boilerplate already handle those paths.
 Computation math code should usually not work with the container setup
 directly.
 
+Repository upgrades and image releases are separate author-maintenance
+workflows. See [Migrating a Computation](../computation_development/migrating_computations.md)
+and [Publishing Computation Images](../computation_publishing/publishing_computation_images.md);
+neither command is executed as part of a NeuroFLAME run.
+
 ## The System Folder
 
 - **Purpose:**  
@@ -32,8 +37,10 @@ directly.
 
 Central and edge runtime entrypoints remain alive until NVFlare shuts down. A
 terminal computation failure is preserved through shutdown and then raised at
-the process boundary, producing a nonzero container exit and an error traceback
-for the calling platform.
+the process boundary, producing a nonzero container exit. Full site exception
+details remain in that participant's private run results; only a versioned,
+message-free failure origin envelope crosses NVFlare. Central failures remain
+available in the central run results.
 
 ## Provisioning Process
 
@@ -70,7 +77,6 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
     ],
     "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
-    "admin_port": 5678,
     "host_identifier": "IP or hostname"
 }
 ```
@@ -82,8 +88,10 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
 - **computation_parameters:** A JSON object defined by the consortium leader.
   A string containing an encoded JSON object is also accepted for
   compatibility.
-- **fed_learn_port:** The port used for client connections.
-- **admin_port:** The port where the admin component is hosted.
+- **fed_learn_port:** The single port used by NeuroFLAME for client and
+  administration connections. NeuroFLAME does not currently accept
+  `admin_port`; NVFlare 2.8 still supports it as an optional distinct port and
+  defaults it to `fed_learn_port` when omitted.
 - **host_identifier:** The IP address or hostname for the central node.
 
 ## Mounting Conventions

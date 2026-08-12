@@ -55,7 +55,7 @@ image dependency.
 Install NVFlare:
 
 ```bash
-python3 -m pip install nvflare==2.4.0
+python3 -m pip install nvflare==2.8.0
 ```
 
 Set the expected environment variables:
@@ -73,7 +73,7 @@ code directly from your host environment.
 Build the dev image:
 
 ```bash
-docker build -t nvflare-dev -f Dockerfile-dev .
+docker build --platform linux/amd64 -t nvflare-dev -f Dockerfile-dev .
 ```
 
 If you need an interactive container shell for lower-level debugging, you can
@@ -96,3 +96,9 @@ Use this only when the wrapper script is not enough for the debugging task.
 Local runs recreate `job/`, `simulator_workspace/`, and
 `test_output/simulate_job/`. These are generated validation output and should
 remain ignored rather than being committed as computation source.
+
+After local validation, use `./dockerPush.sh --local` to build the labeled
+production image for a local NeuroFLAME integration test. See
+[Publishing Computation Images](../computation_publishing/publishing_computation_images.md)
+for the distinction between local, validation-only, and registry publication
+commands.

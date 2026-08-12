@@ -1,5 +1,51 @@
 ## Purpose
 
+The runtime targets NVFlare 2.8.0 and Python 3.11.
+
+## Boilerplate releases
+
+The repository's `.neuroflame.json` manifest records the computation release,
+the exact NeuroFLAME computation API and boilerplate compatibility versions,
+and the image publishing destination. The boilerplate follows its own semantic
+version independently of the NVFlare runtime version. Boilerplate `0.1.0`
+targets NVFlare 2.8.0.
+
+Publishing with `./dockerPush.sh` validates this manifest, applies the required
+OCI metadata, and pushes the floating, release, and Git-revision tags. Use
+`./dockerPush.sh --no-push` to build and inspect the production image without
+publishing it.
+
+For a local NeuroFLAME integration test, run `./dockerPush.sh --local`. This
+builds all three labeled tags in the local Docker image store and prints the
+floating image reference and content-addressed image ID used by the dev client.
+
+Check out the desired boilerplate release, then run its migration utility to
+inspect or update a computation repository:
+
+```bash
+# Report managed files that differ; makes no changes.
+python scripts/migrate_computation.py /path/to/computation --check
+
+# Make a new upgraded working-tree copy without generated files or Git metadata.
+python scripts/migrate_computation.py /path/to/computation \
+  --output /path/to/upgraded-computation
+
+# Explicitly overwrite framework-owned files in the existing repository.
+python scripts/migrate_computation.py /path/to/computation --in-place --force
+```
+
+The utility replaces `framework/`, `runtime/`, NVFlare configuration,
+provisioning and container integration. It preserves `app/code/computation/`,
+repository-specific files, and target-only packages in `requirements.txt`.
+
+Author and release-maintainer procedures are documented in:
+
+- [Migrating a Computation to a Boilerplate Release](docs/computation_development/migrating_computations.md)
+- [Publishing Computation Images](docs/computation_publishing/publishing_computation_images.md)
+
+These scripts are repository maintenance tools. NeuroFLAME does not invoke
+them while starting or running a computation.
+
 This repository serves as the **central resource** for:
 
 - **Technical documentation** on the NeuroFLAME Computation Interface.
@@ -114,6 +160,8 @@ and standard output writing should stay out of computation math code.
 
 - **[Computation Interface Documentation](docs/neuroflame_computation_interface/neuroflame_computation_interface.md)**: How computations interact with NeuroFLAME.
 - **[Developer Guides](docs/computation_development/computation_development.md)**: Tips for seamless computation development.
+- **[Migration Guide](docs/computation_development/migrating_computations.md)**: Safely apply a released boilerplate to a computation repository.
+- **[Image Publishing Guide](docs/computation_publishing/publishing_computation_images.md)**: Build, validate, tag, and publish a computation image.
 - **[Publishing Requirements](docs/computation_publishing/Computation_Publishing_Requirements.md)**: Requirements and instructions for publishing.
 
 ## Computation Module Library

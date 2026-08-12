@@ -13,6 +13,10 @@ sys.path.insert(0, CODE_DIR)
 
 from framework import ComputationSpec, local_step, remote_step, stepped_workflow
 from framework.errors import (
+    ERROR_ENVELOPE_KEY,
+    ERROR_ORIGIN_CENTRAL,
+    ERROR_ORIGIN_SITE,
+    build_error_envelope,
     find_terminal_errors,
     raise_for_terminal_errors,
     record_terminal_error,
@@ -21,12 +25,13 @@ from framework.errors import (
 NVFLARE_AVAILABLE = importlib.util.find_spec("nvflare") is not None
 
 if NVFLARE_AVAILABLE:
-    from framework.controller import ComputationController
+    from framework.controller import ComputationController, RelayedSiteFailure
     from framework.executor import ComputationExecutor
     from nvflare.apis.controller_spec import TaskCompletionStatus
     from nvflare.apis.fl_constant import FLContextKey, ReturnCode
     from nvflare.apis.job_def import JobMetaKey, RunStatus
     from nvflare.apis.shareable import make_reply
+    from nvflare.fuel.flare_api.api_spec import TargetType
 
     NVFLARE_AVAILABLE = True
 
@@ -62,11 +67,19 @@ class TerminalErrorMarkerTests(unittest.TestCase):
             try:
                 raise ValueError("bad computation input")
             except ValueError as error:
-                record_terminal_error(output_dir, "input", error)
+                record_terminal_error(
+                    output_dir,
+                    "input",
+                    error,
+                    origin=ERROR_ORIGIN_CENTRAL,
+                    stage="input_validation",
+                )
 
             errors = find_terminal_errors(output_dir)
             self.assertEqual(len(errors), 1)
             self.assertEqual(errors[0]["scope"], "input")
+            self.assertEqual(errors[0]["origin"], ERROR_ORIGIN_CENTRAL)
+            self.assertEqual(errors[0]["stage"], "input_validation")
             self.assertEqual(errors[0]["message"], "bad computation input")
             self.assertIn("ValueError: bad computation input", errors[0]["traceback"])
             with self.assertRaisesRegex(RuntimeError, "bad computation input"):
@@ -112,6 +125,26 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 fl_ctx=None,
             )
 
+    def test_structured_site_failure_is_relayed_without_message_parsing(self):
+        result = make_reply(ReturnCode.EXECUTION_EXCEPTION)
+        result[ERROR_ENVELOPE_KEY] = build_error_envelope(
+            ERROR_ORIGIN_SITE,
+            "task_execution",
+            "site task compute",
+        )
+        client_task = SimpleNamespace(
+            result=result,
+            task=SimpleNamespace(name="compute"),
+            client=SimpleNamespace(name="site1"),
+        )
+
+        with self.assertRaises(RelayedSiteFailure):
+            ComputationController._validate_site_result(
+                None,
+                client_task=client_task,
+                fl_ctx=None,
+            )
+
     def test_non_ok_task_completion_is_terminal(self):
         def broadcast_and_wait(**kwargs):
             kwargs["task"].completion_status = TaskCompletionStatus.TIMEOUT
@@ -133,7 +166,7 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 abort_signal=None,
             )
 
-    def test_executor_logs_traceback_and_reraises_author_error(self):
+    def test_executor_returns_safe_envelope_and_keeps_full_error_local(self):
         def fail_local(_payload):
             raise ValueError("local math failed")
 
@@ -144,13 +177,23 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
         executor = ComputationExecutor()
         executor.SPEC = ComputationSpec(workflow)
 
-        with self.assertRaisesRegex(ValueError, "local math failed"):
-            executor.execute(
-                "fail_local",
-                make_reply(ReturnCode.OK),
-                FakeContext(client_name="site1"),
-                None,
-            )
+        result = executor.execute(
+            "fail_local",
+            make_reply(ReturnCode.OK),
+            FakeContext(client_name="site1"),
+            None,
+        )
+
+        self.assertEqual(result.get_return_code(), ReturnCode.EXECUTION_EXCEPTION)
+        self.assertEqual(
+            result[ERROR_ENVELOPE_KEY],
+            build_error_envelope(
+                ERROR_ORIGIN_SITE,
+                "task_execution",
+                "site task fail_local",
+            ),
+        )
+        self.assertNotIn("local math failed", json.dumps(result))
 
         with open(
             os.path.join(self.output_dir, "site1.log"), encoding="utf-8"
@@ -158,6 +201,9 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
             log_text = log_file.read()
         self.assertIn("Computation task 'fail_local' failed", log_text)
         self.assertIn("ValueError: local math failed", log_text)
+        errors = find_terminal_errors(self.output_dir)
+        self.assertEqual(errors[0]["message"], "local math failed")
+        self.assertEqual(errors[0]["origin"], ERROR_ORIGIN_SITE)
 
     def test_controller_startup_error_records_terminal_marker(self):
         def compute(payload):
@@ -197,14 +243,14 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
         with open(self.parameters_path, "w", encoding="utf-8") as parameters_file:
             parameters_file.write("not json")
 
-        with self.assertRaises(json.JSONDecodeError):
-            executor.execute(
-                "compute",
-                make_reply(ReturnCode.OK),
-                FakeContext(client_name="site1"),
-                None,
-            )
+        result = executor.execute(
+            "compute",
+            make_reply(ReturnCode.OK),
+            FakeContext(client_name="site1"),
+            None,
+        )
 
+        self.assertEqual(result.get_return_code(), ReturnCode.EXECUTION_EXCEPTION)
         errors = find_terminal_errors(self.output_dir)
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["scope"], "site task compute")
@@ -219,19 +265,22 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         entry_central = load_module("test_entry_central", "system/entry_central.py")
         session = Mock()
         session.submit_job.return_value = "job-id"
-        session.get_job_meta.return_value = {
+        session.wait_for_job.return_value = {
             JobMetaKey.STATUS.value: RunStatus.FINISHED_EXECUTION_EXCEPTION.value,
         }
 
-        with patch.object(entry_central, "start_server"), patch.object(
-            entry_central,
-            "new_secure_session",
-            return_value=session,
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "FINISHED:EXECUTION_EXCEPTION"):
                 entry_central.main()
 
-        session.shutdown.assert_called_once_with("all")
+        session.shutdown.assert_called_once_with(TargetType.ALL)
 
     def test_central_completed_job_shuts_down_without_error(self):
         entry_central = load_module(
@@ -239,79 +288,118 @@ class EntrypointErrorHandlingTests(unittest.TestCase):
         )
         session = Mock()
         session.submit_job.return_value = "job-id"
-        session.get_job_meta.return_value = {
+        session.wait_for_job.return_value = {
             JobMetaKey.STATUS.value: RunStatus.FINISHED_COMPLETED.value,
         }
 
-        with patch.object(entry_central, "start_server"), patch.object(
-            entry_central,
-            "new_secure_session",
-            return_value=session,
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
         ):
             entry_central.main()
 
-        session.shutdown.assert_called_once_with("all")
+        session.shutdown.assert_called_once_with(TargetType.ALL)
+
+    def test_central_shutdown_error_does_not_mask_job_error(self):
+        entry_central = load_module(
+            "test_entry_central_shutdown_error", "system/entry_central.py"
+        )
+        session = Mock()
+        session.submit_job.return_value = "job-id"
+        session.wait_for_job.return_value = {
+            JobMetaKey.STATUS.value: RunStatus.FINISHED_EXECUTION_EXCEPTION.value,
+        }
+        session.shutdown.side_effect = RuntimeError("shutdown failed")
+
+        with (
+            patch.object(entry_central, "start_server"),
+            patch.object(
+                entry_central,
+                "new_secure_session",
+                return_value=session,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, "FINISHED:EXECUTION_EXCEPTION"
+            ) as raised:
+                entry_central.main()
+
+        self.assertIn("shutdown failed", " ".join(raised.exception.__notes__))
 
     def test_edge_tracks_foreground_nvflare_daemon(self):
         entry_edge = load_module("test_entry_edge", "system/entry_edge.py")
-        completed_process = Mock()
+        child = Mock()
+        child.wait.return_value = 0
 
         with patch.object(
             entry_edge.subprocess,
-            "run",
-            return_value=completed_process,
-        ) as run:
+            "Popen",
+            return_value=child,
+        ) as popen:
             entry_edge.main()
 
-        run.assert_called_once_with(
-            ["/bin/bash", "/workspace/runKit/startup/sub_start.sh"],
-            check=False,
+        popen.assert_called_once_with(
+            ["/bin/bash", "/workspace/runKit/startup/sub_start.sh", "--once"],
+            start_new_session=True,
         )
-        completed_process.check_returncode.assert_called_once_with()
+        child.wait.assert_called_once_with()
 
     def test_edge_reports_terminal_marker_before_subprocess_status(self):
         entry_edge = load_module("test_entry_edge_marker", "system/entry_edge.py")
-        completed_process = Mock()
+        child = Mock()
+        child.wait.return_value = 0
 
-        with patch.object(
-            entry_edge.subprocess,
-            "run",
-            return_value=completed_process,
-        ), patch.object(
-            entry_edge,
-            "raise_for_terminal_errors",
-            side_effect=RuntimeError("local math failed"),
+        with (
+            patch.object(
+                entry_edge.subprocess,
+                "Popen",
+                return_value=child,
+            ),
+            patch.object(
+                entry_edge,
+                "raise_for_terminal_errors",
+                side_effect=RuntimeError("local math failed"),
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "local math failed"):
                 entry_edge.main()
 
-        completed_process.check_returncode.assert_not_called()
+        child.wait.assert_called_once_with()
 
     def test_debugger_escalates_marker_after_zero_simulator_status(self):
         debugger = load_module("test_debugger", "debugger.py")
-        simulator = Mock()
-        simulator.run.return_value = 0
-        simulator_args = SimpleNamespace(
-            job_folder="job",
-            workspace="workspace",
-            clients="site1",
-            n_clients=1,
-            threads=None,
-            gpu=None,
-            max_clients=100,
-        )
+        completed_process = Mock(returncode=0)
+        with tempfile.TemporaryDirectory() as workspace:
+            simulator_args = SimpleNamespace(
+                job_folder="job",
+                workspace=workspace,
+                clients="site1",
+                n_clients=1,
+                threads=None,
+                gpu=None,
+                log_config=None,
+                max_clients=100,
+                end_run_for_all=False,
+            )
 
-        with patch.object(
-            debugger,
-            "SimulatorRunner",
-            return_value=simulator,
-        ), patch.object(
-            debugger,
-            "raise_for_terminal_errors",
-            side_effect=RuntimeError("remote math failed"),
-        ):
-            with self.assertRaisesRegex(RuntimeError, "remote math failed"):
-                debugger.run_simulator(simulator_args)
+            with (
+                patch.object(
+                    debugger.subprocess,
+                    "run",
+                    return_value=completed_process,
+                ),
+                patch.object(
+                    debugger,
+                    "raise_for_terminal_errors",
+                    side_effect=RuntimeError("remote math failed"),
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "remote math failed"):
+                    debugger.run_simulator(simulator_args)
 
 
 if __name__ == "__main__":
