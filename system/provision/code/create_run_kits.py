@@ -14,8 +14,12 @@ logger = logging.getLogger(__name__)
 _SERVER_RUNTIME_CLASSES = (
     "runtime.aggregator.RuntimeAggregator",
     "runtime.controller.RuntimeController",
+    "framework.artifact_transfer.ArtifactTransfer",
 )
-_CLIENT_RUNTIME_CLASSES = ("runtime.executor.RuntimeExecutor",)
+_CLIENT_RUNTIME_CLASSES = (
+    "runtime.executor.RuntimeExecutor",
+    "framework.artifact_transfer.ArtifactTransfer",
+)
 
 
 def create_run_kits(
@@ -49,8 +53,10 @@ def create_run_kits(
             source_path = os.path.join(startup_kits_path, site)
             destination_path = os.path.join(output_directory, site)
             logger.info(f"Copying {source_path} to {destination_path}")
+            disable_site_log_streaming(source_path)
             copy_directory(source_path, destination_path)
             extend_component_allow_list(destination_path, _CLIENT_RUNTIME_CLASSES)
+            disable_site_log_streaming(destination_path)
             write_computation_parameters(destination_path, computation_parameters)
 
         # Create the central node runKit
@@ -117,6 +123,17 @@ def extend_component_allow_list(kit_path: str, class_paths: tuple[str, ...]) -> 
         if class_path not in allow_list:
             allow_list.append(class_path)
     resources["class_list_enforcement_mode"] = "enforce"
+    with open(resources_path, "w", encoding="utf-8") as resources_file:
+        json.dump(resources, resources_file, indent=2)
+        resources_file.write("\n")
+
+
+def disable_site_log_streaming(kit_path: str) -> None:
+    """Keep participant logs local unless a deployment explicitly opts in."""
+    resources_path = os.path.join(kit_path, "local", "resources.json.default")
+    with open(resources_path, encoding="utf-8") as resources_file:
+        resources = json.load(resources_file)
+    resources["allow_log_streaming"] = False
     with open(resources_path, "w", encoding="utf-8") as resources_file:
         json.dump(resources, resources_file, indent=2)
         resources_file.write("\n")

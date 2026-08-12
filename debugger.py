@@ -8,7 +8,7 @@ import sys
 
 from framework.errors import raise_for_terminal_errors
 
-_SIMULATOR_ALLOWED_CLASS_PREFIXES = ("nvflare.", "runtime.")
+_SIMULATOR_ALLOWED_CLASS_PREFIXES = ("nvflare.", "runtime.", "framework.")
 
 
 def define_simulator_parser(simulator_parser):

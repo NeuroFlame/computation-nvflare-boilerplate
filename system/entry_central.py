@@ -3,7 +3,7 @@
 import os
 import subprocess
 
-from framework.errors import raise_for_terminal_errors
+from framework.errors import emit_shared_error_summary, raise_for_terminal_errors
 from nvflare.apis.job_def import JobMetaKey, RunStatus
 from nvflare.fuel.flare_api.api_spec import TargetType
 from nvflare.fuel.flare_api.flare_api import new_secure_session
@@ -44,7 +44,13 @@ def main():
         job_status = job_meta[JobMetaKey.STATUS.value]
         print(f"Terminal job status: {job_status}")
         if job_status != RunStatus.FINISHED_COMPLETED.value:
-            raise_for_terminal_errors(os.getenv("OUTPUT_DIR", "/workspace/output"))
+            output_dir = os.getenv("OUTPUT_DIR", "/workspace/output")
+            emit_shared_error_summary(
+                output_dir,
+                fallback_origin="central",
+                fallback_stage="execution",
+            )
+            raise_for_terminal_errors(output_dir)
             raise RuntimeError(f"Job {job_id} ended with status {job_status}")
     except BaseException as error:
         active_error = error

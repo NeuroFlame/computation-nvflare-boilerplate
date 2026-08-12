@@ -17,6 +17,7 @@ from framework.errors import (
     ERROR_ORIGIN_CENTRAL,
     ERROR_ORIGIN_SITE,
     build_error_envelope,
+    emit_shared_error_summary,
     find_terminal_errors,
     raise_for_terminal_errors,
     record_terminal_error,
@@ -25,6 +26,7 @@ from framework.errors import (
 NVFLARE_AVAILABLE = importlib.util.find_spec("nvflare") is not None
 
 if NVFLARE_AVAILABLE:
+    from framework.artifact_transfer import ArtifactTransferError
     from framework.controller import ComputationController, RelayedSiteFailure
     from framework.executor import ComputationExecutor
     from nvflare.apis.controller_spec import TaskCompletionStatus
@@ -85,6 +87,36 @@ class TerminalErrorMarkerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "bad computation input"):
                 raise_for_terminal_errors(output_dir)
 
+    def test_shared_summary_omits_central_message_and_sensitive_path(self):
+        with tempfile.TemporaryDirectory() as output_dir:
+            error = ValueError("failed at /sensitive/subject-123/image.nii")
+            record_terminal_error(
+                output_dir,
+                "remote round 2",
+                error,
+                origin=ERROR_ORIGIN_CENTRAL,
+                stage="aggregation",
+            )
+            with patch("builtins.print") as print_mock:
+                emit_shared_error_summary(
+                    output_dir,
+                    fallback_origin="central",
+                    fallback_stage="execution",
+                )
+            summary = print_mock.call_args.args[0]
+            envelope = json.loads(summary.split(":", 1)[1])
+            self.assertEqual(
+                envelope,
+                {
+                    "schema_version": 1,
+                    "origin": "central",
+                    "stage": "aggregation",
+                    "code": "central_computation_failed",
+                },
+            )
+            self.assertNotIn("subject-123", summary)
+            self.assertNotIn("/sensitive", summary)
+
 
 @unittest.skipUnless(
     NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
@@ -144,6 +176,29 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
                 client_task=client_task,
                 fl_ctx=None,
             )
+
+    def test_site_transfer_failure_is_relayed_with_sanitized_detail(self):
+        def reject_transfer(_result, _fl_ctx):
+            raise ArtifactTransferError(
+                "failed reading /sensitive/subject-123/average.nii"
+            )
+
+        controller = SimpleNamespace(
+            aggregator=SimpleNamespace(accept=reject_transfer),
+            _validate_site_result=lambda *_args, **_kwargs: True,
+        )
+        client_task = SimpleNamespace(
+            result=make_reply(ReturnCode.OK),
+            task=SimpleNamespace(name="compute"),
+            client=SimpleNamespace(name="site1"),
+        )
+        with self.assertRaises(RelayedSiteFailure) as raised:
+            ComputationController._accept_site_result(
+                controller, client_task=client_task, fl_ctx=None
+            )
+        self.assertIn("site1", str(raised.exception))
+        self.assertNotIn("subject-123", str(raised.exception))
+        self.assertNotIn("/sensitive", str(raised.exception))
 
     def test_non_ok_task_completion_is_terminal(self):
         def broadcast_and_wait(**kwargs):

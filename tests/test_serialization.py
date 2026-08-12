@@ -100,12 +100,10 @@ class DataclassSerializationTests(unittest.TestCase):
         self.assertEqual(deserialize_value(payload), original)
 
     def test_paths_and_artifacts_fail_with_transfer_guidance(self):
-        with self.assertRaisesRegex(TypeError, "ArtifactRef/file transfer"):
+        with self.assertRaisesRegex(TypeError, "framework.artifact"):
             serialize_value(Path("image.nii"))
-        with self.assertRaisesRegex(
-            TypeError, "ArtifactRef transport is not implemented"
-        ):
-            serialize_value(ArtifactRef(path="image.nii"))
+        with self.assertRaisesRegex(TypeError, "returned from a computation step"):
+            serialize_value(ArtifactRef(name="image.nii", path="image.nii"))
 
 
 @unittest.skipIf(numpy is None, "NumPy is not installed in this Python environment")

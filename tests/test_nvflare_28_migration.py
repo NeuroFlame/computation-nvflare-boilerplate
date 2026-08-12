@@ -20,6 +20,7 @@ from debugger import build_simulator_command, configure_simulator_authorization
 from system.entry_provision import validate_network_config
 from system.provision.code.create_run_kits import (
     create_run_kits,
+    disable_site_log_streaming,
     extend_component_allow_list,
 )
 from system.provision.code.generate_project_file import generate_project_file
@@ -73,6 +74,22 @@ class ProvisioningMigrationTests(unittest.TestCase):
                         json.load(parameters_file),
                         {"alpha": 1},
                     )
+            with open(
+                os.path.join(
+                    output_directory, "site1", "local", "resources.json.default"
+                ),
+                encoding="utf-8",
+            ) as resources_file:
+                client_resources = json.load(resources_file)
+            self.assertIs(client_resources["allow_log_streaming"], False)
+            with open(
+                os.path.join(
+                    startup_kits_path, "site1", "local", "resources.json.default"
+                ),
+                encoding="utf-8",
+            ) as resources_file:
+                startup_resources = json.load(resources_file)
+            self.assertIs(startup_resources["allow_log_streaming"], False)
 
     def test_project_uses_single_port_and_no_removed_builders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -138,6 +155,20 @@ class ProvisioningMigrationTests(unittest.TestCase):
         )
         self.assertEqual(resources["class_list_enforcement_mode"], "enforce")
 
+    def test_log_streaming_is_explicitly_disabled_even_if_template_enables_it(self):
+        with tempfile.TemporaryDirectory() as kit_path:
+            local_path = os.path.join(kit_path, "local")
+            os.makedirs(local_path)
+            resources_path = os.path.join(local_path, "resources.json.default")
+            with open(resources_path, "w", encoding="utf-8") as resources_file:
+                json.dump({"allow_log_streaming": True}, resources_file)
+
+            disable_site_log_streaming(kit_path)
+
+            with open(resources_path, encoding="utf-8") as resources_file:
+                resources = json.load(resources_file)
+            self.assertIs(resources["allow_log_streaming"], False)
+
 
 class SimulatorCommandTests(unittest.TestCase):
     def test_simulator_authorization_preserves_existing_classes(self):
@@ -154,7 +185,7 @@ class SimulatorCommandTests(unittest.TestCase):
                 resources = json.load(resources_file)
             self.assertEqual(
                 resources["class_allow_list"],
-                ["existing.Component", "nvflare.", "runtime."],
+                ["existing.Component", "nvflare.", "runtime.", "framework."],
             )
 
     def test_public_simulator_cli_command_preserves_wrapper_options(self):
