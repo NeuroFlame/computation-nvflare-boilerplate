@@ -316,6 +316,68 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
     NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
 )
 class EntrypointErrorHandlingTests(unittest.TestCase):
+    def test_central_session_startup_error_is_recorded_and_reraised(self):
+        entry_central = load_module(
+            "test_entry_central_session_startup", "system/entry_central.py"
+        )
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            with (
+                patch.dict(os.environ, {"OUTPUT_DIR": output_dir}),
+                patch.object(entry_central, "start_server"),
+                patch.object(
+                    entry_central,
+                    "new_secure_session",
+                    side_effect=RuntimeError("cannot connect to server"),
+                ),
+                patch("builtins.print") as print_mock,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "cannot connect to server"):
+                    entry_central.main()
+
+            errors = find_terminal_errors(output_dir)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0]["origin"], ERROR_ORIGIN_CENTRAL)
+            self.assertEqual(errors[0]["stage"], "controller_startup")
+            self.assertEqual(errors[0]["scope"], "central runtime")
+            self.assertEqual(errors[0]["message"], "cannot connect to server")
+            summary = print_mock.call_args.args[0]
+            self.assertNotIn("cannot connect to server", summary)
+            self.assertEqual(
+                json.loads(summary.split(":", 1)[1]),
+                {
+                    "schema_version": 1,
+                    "origin": "central",
+                    "stage": "startup",
+                    "code": "central_computation_failed",
+                },
+            )
+
+    def test_central_server_startup_error_does_not_create_a_session(self):
+        entry_central = load_module(
+            "test_entry_central_server_startup", "system/entry_central.py"
+        )
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            with (
+                patch.dict(os.environ, {"OUTPUT_DIR": output_dir}),
+                patch.object(
+                    entry_central,
+                    "start_server",
+                    side_effect=RuntimeError("server startup failed"),
+                ),
+                patch.object(entry_central, "new_secure_session") as new_session,
+                patch("builtins.print"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "server startup failed"):
+                    entry_central.main()
+
+            new_session.assert_not_called()
+            errors = find_terminal_errors(output_dir)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0]["stage"], "controller_startup")
+            self.assertEqual(errors[0]["message"], "server startup failed")
+
     def test_central_abnormal_job_shuts_down_and_raises(self):
         entry_central = load_module("test_entry_central", "system/entry_central.py")
         session = Mock()
