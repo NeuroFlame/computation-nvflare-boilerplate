@@ -316,6 +316,47 @@ class RuntimeErrorHandlingTests(unittest.TestCase):
     NVFLARE_AVAILABLE, "NVFlare is not installed in this Python environment"
 )
 class EntrypointErrorHandlingTests(unittest.TestCase):
+    def test_central_deployment_timeout_reports_only_allowlisted_detail(self):
+        entry_central = load_module(
+            "test_entry_central_deployment_timeout", "system/entry_central.py"
+        )
+        session = Mock()
+        session.submit_job.return_value = "job-id"
+        session.wait_for_job.return_value = {
+            JobMetaKey.STATUS.value: RunStatus.FAILED_TO_RUN.value,
+            JobMetaKey.JOB_DEPLOY_DETAIL.value: [
+                "server: OK",
+                "site1: no reply (deployment timeout)",
+                "site2: /sensitive/path/subject-name",
+                "num_ok_sites 0 < required_min_sites 2",
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            with (
+                patch.dict(os.environ, {"OUTPUT_DIR": output_dir}),
+                patch.object(entry_central, "start_server"),
+                patch.object(
+                    entry_central,
+                    "new_secure_session",
+                    return_value=session,
+                ),
+                patch("builtins.print"),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "Job deployment timed out waiting for participants: site1",
+                ):
+                    entry_central.main()
+
+            errors = find_terminal_errors(output_dir)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(
+                errors[0]["message"],
+                "Job deployment timed out waiting for participants: site1",
+            )
+            self.assertNotIn("sensitive", errors[0]["message"])
+
     def test_central_session_startup_error_is_recorded_and_reraised(self):
         entry_central = load_module(
             "test_entry_central_session_startup", "system/entry_central.py"

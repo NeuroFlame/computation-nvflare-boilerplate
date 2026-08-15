@@ -52,6 +52,22 @@ class ProvisioningMigrationTests(unittest.TestCase):
                     encoding="utf-8",
                 ) as resources_file:
                     json.dump({"class_allow_list": []}, resources_file)
+            server_startup_path = os.path.join(
+                startup_kits_path, host_identifier, "startup"
+            )
+            os.makedirs(server_startup_path)
+            with open(
+                os.path.join(server_startup_path, "fed_server.json"),
+                "w",
+                encoding="utf-8",
+            ) as server_config_file:
+                json.dump(
+                    {
+                        "format_version": 2,
+                        "servers": [{"name": "project", "admin_timeout": 10.0}],
+                    },
+                    server_config_file,
+                )
 
             computation_parameters = '{"alpha": 1}'
             with mock.patch("system.provision.code.create_run_kits.create_job"):
@@ -90,6 +106,18 @@ class ProvisioningMigrationTests(unittest.TestCase):
             ) as resources_file:
                 startup_resources = json.load(resources_file)
             self.assertIs(startup_resources["allow_log_streaming"], False)
+            with open(
+                os.path.join(
+                    output_directory,
+                    "centralNode",
+                    "server",
+                    "startup",
+                    "fed_server.json",
+                ),
+                encoding="utf-8",
+            ) as server_config_file:
+                server_config = json.load(server_config_file)
+            self.assertEqual(server_config["servers"][0]["admin_timeout"], 120.0)
 
     def test_project_uses_single_port_and_no_removed_builders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -108,6 +136,12 @@ class ProvisioningMigrationTests(unittest.TestCase):
         self.assertEqual(server["fed_learn_port"], 8002)
         self.assertNotIn("admin_port", server)
         builder_paths = [builder["path"] for builder in project["builders"]]
+        static_builder = next(
+            builder
+            for builder in project["builders"]
+            if builder["path"] == "nvflare.lighter.impl.static_file.StaticFileBuilder"
+        )
+        self.assertEqual(static_builder["args"]["scheme"], "grpc")
         self.assertNotIn("nvflare.lighter.impl.template.TemplateBuilder", builder_paths)
         self.assertNotIn("overseer", json.dumps(project).lower())
         self.assertNotIn("nvflare.ha", json.dumps(project).lower())

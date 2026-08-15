@@ -39,6 +39,19 @@ NeuroFLAME's current single-port provisioning contract rejects `admin_port`.
 NVFlare 2.8 itself still supports an optional distinct administration port; when
 `admin_port` is omitted, it defaults to `fed_learn_port`.
 
+Generated central server kits set NVFlare's `admin_timeout` to 120 seconds.
+NVFlare uses this timeout while distributing the packaged job and waiting for
+participant acknowledgements. The larger value accommodates computation images
+whose job bundle contains sizeable shared assets and participants connected over
+slower institutional networks; it does not extend computation task deadlines.
+
+Startup kits use NVFlare's `grpc` communication scheme. NVFlare 2.8's HTTP
+WebSocket client inherits aiohttp's 4 MiB message limit even though its server
+accepts larger frames, which disconnects participants while deploying
+computation jobs containing larger packaged assets. gRPC configures matching
+large-message support on both endpoints and continues to use the provisioned
+single federation port.
+
 ## Output
 
 Provisioning creates one directory per site plus a central-node directory:
