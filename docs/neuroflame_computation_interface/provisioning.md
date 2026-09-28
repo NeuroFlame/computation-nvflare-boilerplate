@@ -19,6 +19,7 @@ following fields:
     "users": [
         {"id": "unique site ID", "name": "display site name"}
     ],
+    "consortium_leader_id": "user ID of the consortium leader",
     "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
     "host_identifier": "IP or hostname"
@@ -29,6 +30,11 @@ following fields:
   `name` must be a non-empty string, and both must be unique. `id` is the stable
   provisioning identity; `name` is the display name exposed to computation
   results through the generated `site_id_name_map` parameter.
+- **consortium_leader_id**: Optional. The user ID of the consortium leader who
+  started the run. When present, it is exposed to computations as the generated
+  `consortium_leader_id` parameter. The leader is not necessarily one of the
+  `users`; resolve a participating leader's display name through
+  `site_id_name_map`.
 - **computation_parameters**: A JSON object set by the consortium leader. A
   string containing an encoded JSON object is also accepted for compatibility.
 - **host_identifier**: The IP address or hostname where the central node can be reached.

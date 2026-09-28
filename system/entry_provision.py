@@ -90,6 +90,32 @@ def load_computation_parameters(provision_input: dict) -> dict:
     return parameters
 
 
+def load_consortium_leader_id(provision_input: dict):
+    """Return the consortium leader's user ID, or None when not provided.
+
+    The leader is not necessarily a participating site, so the ID is not
+    required to appear in ``users``.
+    """
+    leader_id = provision_input.get("consortium_leader_id")
+    if leader_id is None:
+        return None
+    if not isinstance(leader_id, str) or not leader_id.strip():
+        raise ValueError(
+            "Provision input 'consortium_leader_id' must be a non-empty string"
+        )
+    return leader_id
+
+
+def build_computation_parameters(provision_input: dict, site_id_name_map: dict) -> dict:
+    """Add platform-provided run context to the computation parameters."""
+    parameters = load_computation_parameters(provision_input)
+    parameters["site_id_name_map"] = site_id_name_map
+    leader_id = load_consortium_leader_id(provision_input)
+    if leader_id is not None:
+        parameters["consortium_leader_id"] = leader_id
+    return parameters
+
+
 def validate_network_config(provision_input: dict) -> tuple[int, str]:
     """Validate NeuroFLAME's single-port NVFlare server configuration."""
     if "admin_port" in provision_input:
@@ -129,9 +155,9 @@ def main():
 
     # Extract arguments from provision input
     user_ids, site_id_name_map = validate_users(provision_input)
-    computation_parameters_dict = load_computation_parameters(provision_input)
-    computation_parameters_dict["site_id_name_map"] = site_id_name_map
-    computation_parameters = json.dumps(computation_parameters_dict)
+    computation_parameters = json.dumps(
+        build_computation_parameters(provision_input, site_id_name_map)
+    )
     fed_learn_port, host_identifier = validate_network_config(provision_input)
 
     print(f"user_ids: {user_ids}")

@@ -4,6 +4,7 @@
         {"id": "user2", "name": "site_two"},
         {"id": "user3", "name": "site_three"}
     ],
+    "consortium_leader_id": "user1",
     "computation_parameters": "{\"testKey\":\"testValue\"}",
     "fed_learn_port": 5000,
     "host_identifier": "host1"

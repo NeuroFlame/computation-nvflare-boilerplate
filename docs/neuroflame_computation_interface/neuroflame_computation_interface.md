@@ -75,6 +75,7 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
     "users": [
         {"id": "unique site ID", "name": "display site name"}
     ],
+    "consortium_leader_id": "user ID of the consortium leader",
     "computation_parameters": {"example_parameter": "value"},
     "fed_learn_port": 1234,
     "host_identifier": "IP or hostname"
@@ -85,6 +86,9 @@ The provisioning container consumes a JSON file named `provision_input.json` wit
   non-empty string, and both must be unique. `id` is the stable provisioning
   identity; `name` is the display name exposed through the generated
   `site_id_name_map` parameter.
+- **consortium_leader_id:** Optional. The user ID of the consortium leader,
+  exposed as the generated `consortium_leader_id` parameter. The leader is not
+  necessarily a participating site.
 - **computation_parameters:** A JSON object defined by the consortium leader.
   A string containing an encoded JSON object is also accepted for
   compatibility.
