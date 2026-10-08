@@ -42,7 +42,7 @@ class JobGenerationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             job_path = os.path.join(temp_dir, "job")
 
-            create_job(SOURCE_APP_DIR, job_path, min_clients=2)
+            create_job(SOURCE_APP_DIR, job_path, min_clients=3)
 
             config_path = os.path.join(
                 job_path,
@@ -51,6 +51,14 @@ class JobGenerationTests(unittest.TestCase):
                 "config_fed_client.json",
             )
             self.assertEqual(read_tasks(config_path), get_task_names(SPEC.workflow))
+            with open(os.path.join(job_path, "meta.json"), encoding="utf-8") as stream:
+                self.assertEqual(json.load(stream)["min_clients"], 3)
+            server_config = os.path.join(
+                job_path, "app", "config", "config_fed_server.json"
+            )
+            with open(server_config, encoding="utf-8") as stream:
+                args = json.load(stream)["workflows"][0]["args"]
+                self.assertEqual(args["min_clients"], 3)
 
 
 if __name__ == "__main__":
