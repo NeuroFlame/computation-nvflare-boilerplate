@@ -1,5 +1,6 @@
 import hashlib
 import os
+import stat
 import sys
 import tempfile
 import threading
@@ -59,8 +60,42 @@ def _manifest(content=b"content", name="artifact.bin"):
 
 class ArtifactStagingTests(unittest.TestCase):
     def _initialize(self, transfer, output_dir):
-        with patch.dict(os.environ, {"OUTPUT_DIR": output_dir}):
+        with patch.dict(
+            os.environ,
+            {
+                "OUTPUT_DIR": output_dir,
+                "NEUROFLAME_ARTIFACT_TEMP_DIR": output_dir,
+            },
+        ):
             transfer._initialize_run(object())
+
+    def test_run_staging_uses_private_container_temporary_storage(self):
+        transfer = ArtifactTransfer()
+        with (
+            tempfile.TemporaryDirectory() as output_dir,
+            tempfile.TemporaryDirectory() as temporary_parent,
+            patch.dict(
+                os.environ,
+                {
+                    "OUTPUT_DIR": output_dir,
+                    "NEUROFLAME_ARTIFACT_TEMP_DIR": temporary_parent,
+                },
+            ),
+        ):
+            transfer._initialize_run(object())
+
+            self.assertEqual(
+                Path(transfer._artifact_root).parent,
+                Path(temporary_parent).resolve(),
+            )
+            self.assertFalse(
+                Path(transfer._artifact_root).is_relative_to(Path(output_dir))
+            )
+            self.assertEqual(
+                stat.S_IMODE(os.stat(transfer._artifact_root).st_mode), 0o700
+            )
+            transfer.cleanup()
+            self.assertFalse(os.path.exists(transfer._artifact_root))
 
     def test_empty_small_and_multichunk_files_are_staged_without_payload_bytes(self):
         with tempfile.TemporaryDirectory() as output_dir:
@@ -618,6 +653,54 @@ class ArtifactReceiveTests(unittest.TestCase):
             self.assertEqual(Path(outside).read_bytes(), b"outside")
             self.assertEqual(os.stat(outside).st_mode, outside_mode)
 
+    def test_integrity_failure_reports_safe_specific_reason(self):
+        content = b"received"
+        with tempfile.TemporaryDirectory() as output_dir:
+            receiver = self._receiver([(ReturnCode.OK, content)], output_dir)
+            manifest = _manifest(b"expected")
+
+            with self.assertRaisesRegex(
+                ArtifactTransferError,
+                "received SHA-256 does not match the manifest",
+            ):
+                receiver.retrieve_artifact(
+                    from_site="site1",
+                    manifest=manifest,
+                    fl_ctx=object(),
+                    timeout=1,
+                    retries=0,
+                    max_file_bytes=1024,
+                )
+
+    def test_promotion_failure_reports_errno_without_path(self):
+        content = b"verified"
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = os.path.join(directory, "sensitive-name")
+            final = os.path.join(directory, "final")
+            Path(temporary).write_bytes(content)
+            error = PermissionError(1, "Operation not permitted", temporary)
+
+            with patch(
+                "framework.artifact_transfer.os.fchmod",
+                side_effect=error,
+            ):
+                promoted, detail = (
+                    artifact_transfer_module._promote_verified_file_with_reason(
+                        temporary,
+                        final,
+                        len(content),
+                        hashlib.sha256(content).hexdigest(),
+                    )
+                )
+
+            self.assertFalse(promoted)
+            self.assertEqual(
+                detail,
+                "setting private file permissions failed "
+                "(errno 1: Operation not permitted)",
+            )
+            self.assertNotIn(temporary, detail)
+
     def test_manifest_mismatch_and_destination_symlink_are_rejected(self):
         content = b"content"
         with tempfile.TemporaryDirectory() as output_dir:
@@ -661,11 +744,16 @@ class ArtifactReceiveTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output_dir:
             receiver = self._receiver([], output_dir)
             artifact_root = receiver._artifact_root
+            output_artifact_root = receiver._output_artifact_root
+            author_root = Path(output_artifact_root, "author", "round-1")
+            author_root.mkdir(parents=True)
+            Path(author_root, "intermediate.bin").write_bytes(b"intermediate")
             Path(receiver._incoming_dir, "partial").write_bytes(b"partial")
 
             receiver.cleanup()
 
             self.assertFalse(os.path.exists(artifact_root))
+            self.assertFalse(os.path.exists(output_artifact_root))
 
     def test_later_failure_removes_artifacts_already_received_for_payload(self):
         first_content = b"first"

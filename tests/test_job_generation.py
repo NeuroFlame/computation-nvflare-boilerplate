@@ -38,27 +38,35 @@ class JobGenerationTests(unittest.TestCase):
 
             self.assertEqual(read_tasks(config_path), get_task_names(SPEC.workflow))
 
-    def test_production_job_config_gets_task_names_from_spec(self):
+    def test_production_job_uses_spec_tasks_and_waits_for_all_participants(self):
+        for count in (1, 3, 5):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as temp_dir:
+                job_path = os.path.join(temp_dir, "job")
+                create_job(SOURCE_APP_DIR, job_path, min_clients=count)
+                config_path = os.path.join(
+                    job_path, "app", "config", "config_fed_client.json"
+                )
+                self.assertEqual(read_tasks(config_path), get_task_names(SPEC.workflow))
+                with open(
+                    os.path.join(job_path, "meta.json"), encoding="utf-8"
+                ) as stream:
+                    self.assertEqual(json.load(stream)["min_clients"], count)
+                server_config = os.path.join(
+                    job_path, "app", "config", "config_fed_server.json"
+                )
+                with open(server_config, encoding="utf-8") as stream:
+                    self.assertEqual(
+                        json.load(stream)["workflows"][0]["args"]["min_clients"], count
+                    )
+        self.assertEqual(read_tasks(SOURCE_CLIENT_CONFIG), [])
+
+    def test_invalid_participant_count_is_rejected_before_creating_job(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             job_path = os.path.join(temp_dir, "job")
-
-            create_job(SOURCE_APP_DIR, job_path, min_clients=3)
-
-            config_path = os.path.join(
-                job_path,
-                "app",
-                "config",
-                "config_fed_client.json",
-            )
-            self.assertEqual(read_tasks(config_path), get_task_names(SPEC.workflow))
-            with open(os.path.join(job_path, "meta.json"), encoding="utf-8") as stream:
-                self.assertEqual(json.load(stream)["min_clients"], 3)
-            server_config = os.path.join(
-                job_path, "app", "config", "config_fed_server.json"
-            )
-            with open(server_config, encoding="utf-8") as stream:
-                args = json.load(stream)["workflows"][0]["args"]
-                self.assertEqual(args["min_clients"], 3)
+            for count in (0, -1, True, "3", 2.5):
+                with self.subTest(count=count), self.assertRaises(ValueError):
+                    create_job(SOURCE_APP_DIR, job_path, min_clients=count)
+                self.assertFalse(os.path.exists(job_path))
 
 
 if __name__ == "__main__":

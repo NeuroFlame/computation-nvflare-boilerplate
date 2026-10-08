@@ -50,6 +50,14 @@ certificates, so the runtime disables that additional layer only when NVFlare's
 own `FLContextKey.SIMULATE_MODE` is true. A completed file is never exposed to
 computation code until its size and digest match the manifest.
 
+Transfer staging uses a private, run-specific directory on the container's
+native temporary filesystem rather than the host-mounted computation output
+directory. This preserves the POSIX permission, inode, and atomic-rename
+semantics required by verification on Docker Desktop hosts, including Windows.
+Author-created intermediate artifacts remain under the hidden author workspace
+and both locations are removed at run shutdown; neither is a computation
+output.
+
 Defaults are configured on `ComputationSpec`:
 
 - `max_artifact_bytes`: 512 MiB per file
