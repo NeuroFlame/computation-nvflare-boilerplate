@@ -302,6 +302,8 @@ Arguments after the payload are supplied by exact name:
 - `parameters`: the complete computation parameters dictionary
 - `data_dir`: the site-local input directory
 - `output_dir`: the computation output directory
+- `artifact_dir`: the private directory for files the current step may transfer with `artifact()`
+- `cache_dir`: the private directory shared across workflow rounds on this participant for locally reused files
 - `logger`: a configured standard Python `logging.Logger`
 - any other name: the matching computation parameter, or its Python default
 
@@ -421,6 +423,15 @@ This is the escape hatch for formats whose writer needs computation-specific
 arguments. To send a generated file to the next participant or central step,
 write it beneath `artifact_dir` and return it with `artifact()` as documented in
 [Artifacts](artifacts.md).
+
+For a file to reuse locally across iterations, write it beneath `cache_dir` and
+keep its path as a string in the side's `state`. The directory is stable across
+rounds for that participant. Every site has its own cache directory, separate
+from central's cache directory; no participant can read another participant's
+cache. Cache files are private run intermediates and are removed at run
+shutdown. A path in state does not transfer its file. If another participant
+needs it, copy the cached file into the current step's `artifact_dir` and
+return that copy with `artifact()`.
 
 ## Terminal Failures
 
