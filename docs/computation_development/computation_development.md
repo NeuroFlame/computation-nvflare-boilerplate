@@ -81,6 +81,7 @@ The supported author API is:
 - `remote_step(...)`
 - `site_output_step(...)`
 - `artifact(...)` for transferring files between workflow steps
+- `cache_file(...)` for resolving a stable file path inside the run cache
 - `with_state(payload, state)` when later steps need cached data
 
 The example boilerplate computation does not need state, so its spec only

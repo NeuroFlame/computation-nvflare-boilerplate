@@ -58,7 +58,9 @@ Author-created transfer artifacts remain under the hidden, round-specific
 author workspace. For files that must be reused locally across iterations,
 authors can instead use the stable injected `cache_dir` and store its path in
 local or remote state. Both directories are removed at run shutdown; neither is
-a computation output. To transfer a cached file later, copy it into the
+a computation output. Use `cache_file(name, cache_dir=cache_dir)` to resolve a
+safe filename in the cache directory; the helper does not choose a file format
+or read/write the contents. To transfer a cached file later, copy it into the
 current step's `artifact_dir` and return that copy with `artifact()`.
 
 Defaults are configured on `ComputationSpec`:
