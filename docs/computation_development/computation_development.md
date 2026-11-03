@@ -80,11 +80,14 @@ The supported author API is:
 - `local_step(...)`
 - `remote_step(...)`
 - `site_output_step(...)`
+- `artifact(...)` for transferring files between workflow steps
+- `cache_file(...)` for resolving a stable file path inside the run cache
 - `with_state(payload, state)` when later steps need cached data
 
 The example boilerplate computation does not need state, so its spec only
-declares the workflow. Framework-managed artifact transfer remains
-future-facing rather than a supported author feature.
+declares the workflow. Use `cache_dir` with `state` when a step needs to reuse a
+local file across iterations; use `artifact(...)` when a file must move to
+another participant or central.
 
 Choose `stepped_workflow(...)` when the computation has a known sequence of
 different local/remote phases. Choose `iterative_workflow(...)` when one
@@ -93,7 +96,9 @@ safety cap is reached.
 
 Each step function receives its payload as the first argument. Later arguments
 are injected by exact name: `state`, `parameters`, `data_dir`, `output_dir`,
-`logger`, or a matching key from the computation parameters file. See
+`artifact_dir`, `cache_dir`, `logger`, or a matching key from the computation
+parameters file. `cache_dir` is stable across iterations within one run, but
+each site and central have separate directories. See
 [Core Components and Workflow](./core_components_and_workflow.md#function-signatures)
 for the complete contract.
 

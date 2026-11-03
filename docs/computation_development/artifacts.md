@@ -54,9 +54,14 @@ Transfer staging uses a private, run-specific directory on the container's
 native temporary filesystem rather than the host-mounted computation output
 directory. This preserves the POSIX permission, inode, and atomic-rename
 semantics required by verification on Docker Desktop hosts, including Windows.
-Author-created intermediate artifacts remain under the hidden author workspace
-and both locations are removed at run shutdown; neither is a computation
-output.
+Author-created transfer artifacts remain under the hidden, round-specific
+author workspace. For files that must be reused locally across iterations,
+authors can instead use the stable injected `cache_dir` and store its path in
+local or remote state. Both directories are removed at run shutdown; neither is
+a computation output. Use `cache_file(name, cache_dir=cache_dir)` to resolve a
+safe filename in the cache directory; the helper does not choose a file format
+or read/write the contents. To transfer a cached file later, copy it into the
+current step's `artifact_dir` and return that copy with `artifact()`.
 
 Defaults are configured on `ComputationSpec`:
 

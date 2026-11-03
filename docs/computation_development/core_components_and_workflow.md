@@ -302,6 +302,8 @@ Arguments after the payload are supplied by exact name:
 - `parameters`: the complete computation parameters dictionary
 - `data_dir`: the site-local input directory
 - `output_dir`: the computation output directory
+- `artifact_dir`: the private directory for files the current step may transfer with `artifact()`
+- `cache_dir`: the private directory shared across workflow rounds on this participant for locally reused files
 - `logger`: a configured standard Python `logging.Logger`
 - any other name: the matching computation parameter, or its Python default
 
@@ -421,6 +423,37 @@ This is the escape hatch for formats whose writer needs computation-specific
 arguments. To send a generated file to the next participant or central step,
 write it beneath `artifact_dir` and return it with `artifact()` as documented in
 [Artifacts](artifacts.md).
+
+For a file to reuse locally across iterations, write it beneath `cache_dir` and
+use `cache_file(name, cache_dir=cache_dir)` to resolve its path. A deterministic
+filename can be resolved again on each iteration without storing it in state;
+use `state` when the filename or other cache metadata is dynamic. The directory
+is stable across rounds for that participant. Every site has its own cache
+directory, separate from central's cache directory; no participant can read
+another participant's cache. Cache files are private run intermediates and are
+removed at run shutdown. The helper only returns a path; authors choose the
+file format and read/write it with the appropriate library. A cached file is
+not transferred automatically. If another participant needs it, copy it into
+the current step's `artifact_dir` and return that copy with `artifact()`.
+
+For example, a site can compute a fixed local statistic once and reuse it on
+later iterations:
+
+```python
+import os
+
+import numpy as np
+from framework import cache_file
+
+
+def update_local_model(global_model, *, data_dir, cache_dir):
+    xtx_path = cache_file("local-xtx.npy", cache_dir=cache_dir)
+    if not os.path.exists(xtx_path):
+        np.save(xtx_path, compute_local_xtx(data_dir))
+
+    xtx = np.load(xtx_path, allow_pickle=False)
+    return update_model(global_model, xtx)
+```
 
 ## Terminal Failures
 
